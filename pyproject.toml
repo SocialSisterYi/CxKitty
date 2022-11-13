@@ -1,11 +1,10 @@
 [tool.poetry]
-name = "cxexam-spider"
+name = "CxKitty"
 version = "0.1.0"
-description = "ChaoXing course video&exam auto flasher"
+description = "超星学习通答题姬"
 authors = ["SocialSisterYi"]
 license = "GPL-3.0"
 readme = "README.md"
-packages = [{include = "cxexam_spider"}]
 
 [[tool.poetry.source]]
 name = "tsinghua"

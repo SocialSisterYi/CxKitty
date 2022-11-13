@@ -2,7 +2,6 @@
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
 import yaml
 from rich.console import Console
@@ -62,8 +61,8 @@ def fuck_course_mainloop(chap: ClassChapters):
     with Live(lay, console=console) as live:
         for index in range(len(chap.chapters)):
             chap.render_lst2tui(lay_chapter, index)
-            if chap.is_finished(index):  # 如果该章节所有任务点做完，那么就跳过
-                time.sleep(0.1)  # 解决强迫症，故意添加延时，为展示滚屏效果
+            if chap.is_finished(index):  # 如果该章节所有任务点做完, 那么就跳过
+                time.sleep(0.1)  # 解决强迫症, 故意添加延时, 为展示滚屏效果
                 continue
             points = chap.fetch_points_by_index(index)  # 获取当前章节的所有任务点
             for task_point in points:
@@ -85,7 +84,7 @@ def fuck_course_mainloop(chap: ClassChapters):
                     wait_sec = CONFIG['exam']['wait']
                     lay_main.unsplit()
                     for i in range(wait_sec):
-                        lay_main.update(Panel(f'[green]试题《{task_point.title}》已结束，课间等待{i}/{wait_sec}s'))
+                        lay_main.update(Panel(f'[green]试题《{task_point.title}》已结束, 课间等待{i}/{wait_sec}s'))
                         time.sleep(1.0)
                 
                 # 视频类型
@@ -97,7 +96,7 @@ def fuck_course_mainloop(chap: ClassChapters):
                     wait_sec = CONFIG['video']['wait']
                     lay_main.unsplit()
                     for i in range(wait_sec):
-                        lay_main.update(Panel(f'[green]视频《{task_point.title}》已结束，课间等待{i}/{wait_sec}s'))
+                        lay_main.update(Panel(f'[green]视频《{task_point.title}》已结束, 课间等待{i}/{wait_sec}s'))
                         time.sleep(1.0)
                 # 析构任务点对象
                 del task_point
@@ -111,7 +110,7 @@ def dialog_class(cx: ChaoXingAPI):
     classes = cx.fetch_classes()
     while True:
         classes.print_tb(console)
-        inp = console.input('输入课程序号，退出输入q：')
+        inp = console.input('输入课程序号, 退出输入q：')
         if inp == 'q':
             sys.exit()
         elif inp.isdigit():
@@ -132,7 +131,7 @@ def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
         )
     console.print(tb)
     while True:
-        inp = console.input('输入会话序号选择，留空登录新账号，退出输入q：')
+        inp = console.input('输入会话序号选择, 留空登录新账号, 退出输入q：')
         if inp == '':
             dialog_login(console, SESSION_PATH, api)
             if api.accinfo():
@@ -144,7 +143,7 @@ def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
             ck = ck2dict(sessions[index].ck)
             api.set_ck(ck)
             if not api.accinfo():
-                console.print('[red]会话失效，尝试重新登录')
+                console.print('[red]会话失效, 尝试重新登录')
                 # 自动重登逻辑
                 phone = sessions[index].phone
                 passwd = sessions[index].passwd
@@ -157,7 +156,7 @@ def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
                         save_session(SESSION_PATH, api, passwd)
                         return
                     else:
-                        console.print('[red]登录失败，清手动登录')
+                        console.print('[red]登录失败, 清手动登录')
                 dialog_login(console, SESSION_PATH, api)
                 continue
             return
@@ -165,6 +164,7 @@ def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
 if __name__ == '__main__':
     api = ChaoXingAPI()
     sessions = sessions_load(SESSION_PATH)
+    # 存在至少一个会话存档
     if sessions:
         # 开启多会话, 允许进行选择
         if CONFIG['multiSession']:
@@ -173,7 +173,9 @@ if __name__ == '__main__':
         else:
             ck = ck2dict(sessions[0].ck)
             api.set_ck(ck)
-        print_accinfo(console, api)
+    # 会话存档为空
     else:
+        console.print('[yellow]会话存档为空, 请登录账号')
         dialog_login(console, SESSION_PATH, api)
+    print_accinfo(console, api)
     dialog_class(api)

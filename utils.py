@@ -74,7 +74,7 @@ def print_accinfo(tui_ctx: Console, api: ChaoXingAPI):
 def dialog_login(tui_ctx: Console, session_path: Path, api: ChaoXingAPI):
     '密码和二维码“登录”交互'
     while True:
-        uname = tui_ctx.input('[yellow]请输入手机号，留空为二维码登录：')
+        uname = tui_ctx.input('[yellow]请输入手机号, 留空为二维码登录：')
         # 二维码登录
         if uname == '':
             api.get_qr()
