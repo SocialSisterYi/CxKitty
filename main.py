@@ -66,13 +66,13 @@ def fuck_video_and_exam_mainloop(chap: ClassChapters):
                 continue
             points = chap.fetch_points_by_index(index)  # 获取当前章节的所有任务点
             for task_point in points:
-                needtodo = task_point.pre_fetch()  # 预拉取 视频或试题
-                if not needtodo:  # 判断已完成  跳过
+                prefetch_status = task_point.pre_fetch()  # 预拉取 视频或试题
+                if not prefetch_status:
                     continue
                 fetch_status = task_point.fetch()  # 拉取  视频或试题
                 if not fetch_status:
                     continue
-                # 分类讨论任务点类型
+                # 开始分类讨论任务点类型
                 
                 # 试题类型
                 if isinstance(task_point, ChapterExam):

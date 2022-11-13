@@ -120,10 +120,10 @@ class ChapterExam:
         root = lxml.html.fromstring(resp.text)
         if re.search(r'已批阅', root.xpath("//title/text()")[0]):
             return False
-        try:
-            self.title = root.xpath("//h3[contains(@class, 'py-Title')]/text()")[0].strip()
-        except Exception:
-            self.title = '获取失败'
+        if p := root.xpath("//p[@class='blankTips']/text()"):
+            if re.search(r'无效的权限', p[0]):
+                return False
+        self.title = root.xpath("//h3[contains(@class, 'py-Title')]/text()")[0].strip()
         # 提取答题表单参数
         self.workAnswerId = int(root.xpath("//input[@name='workAnswerId']/@value")[0])
         self.enc_work = root.xpath("//input[@name='enc_work']/@value")[0]
