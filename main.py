@@ -51,7 +51,7 @@ if CONFIG['exam']['enable']:
         case _:
             raise TypeError('不合法的搜索器类型')
 
-def fuck_course_mainloop(chap: ClassChapters):
+def fuck_video_and_exam_mainloop(chap: ClassChapters):
     '章节课程及答题主循环'
     lay = Layout()
     lay_main = Layout(Panel('等待执行任务'), name='main')
@@ -116,7 +116,7 @@ def dialog_class(cx: ChaoXingAPI):
         elif inp.isdigit():
             # 章节
             chap = classes.fetch_chapters_by_index(int(inp))
-            fuck_course_mainloop(chap)
+            fuck_video_and_exam_mainloop(chap)
             sys.exit()
 
 def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
@@ -178,4 +178,12 @@ if __name__ == '__main__':
         console.print('[yellow]会话存档为空, 请登录账号')
         dialog_login(console, SESSION_PATH, api)
     print_accinfo(console, api)
-    dialog_class(api)
+    try:
+        dialog_class(api)
+    except Exception as err:
+        console.print_exception(show_locals=False)
+        console.print('[bold red]程序运行出现错误, 请截图保存并提交')
+    except KeyboardInterrupt:
+        console.print('[yellow]手动中断程序运行')
+    else:
+        console.print('[green]任务已完成, 程序退出')
