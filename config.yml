@@ -1,0 +1,38 @@
+multiSession: true  # 是否开启多会话模式
+sessionPath: "session/"  # 会话存档路径
+maskAcc: true  # 是否开启姓名手机号打码
+tUIMaxHeight: 20  # TUI 最大显示高度
+
+# 视频
+video:
+  enable: true  # 是否执行任务
+  speed: 1.0  # 播放速度
+  wait: 15  # 完成等待时间
+  report_rate: 58  # 视频播放汇报率 (没事别改)
+
+# 试题
+exam:
+  enable: true  # 是否执行任务
+  wait: 15  # 完成等待时间
+  #fail_save: true  # 是否匹配失败自动保存 (未实现)
+
+# 搜索器
+searcher:
+  use: "jsonFileSearcher"  # 当前选择的搜索器
+  # REST API 在线搜题
+  restApiSearcher:
+    url: "http://127.0.0.1:88/cx/v1"  # API url
+    method: "POST"  # 请求方式
+    req: "question"  # 请求参数
+    rsp: "data"  # 返回参数
+  # 本地 JSON 数据库搜索器 (key为题, value为答案)
+  jsonFileSearcher:
+    path: "questions.json"  # 数据库文件路径
+  # 本地 sqlite 数据库搜索器
+  sqliteSearcher:
+    parh: "questions.db"  # 数据库文件路径
+    table: "question"  # 表名
+    req: "question"  # 请求字段
+    rsp: "answer"  # 返回字段
+    
+
