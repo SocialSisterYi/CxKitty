@@ -1,13 +1,15 @@
 <div align="center">
     <h1>超星学习通答题姬</h1>
     <h2>CxKitty</h2>
-   	<img alt="Github Stars" src="https://img.shields.io/github/stars/SocialSisterYi/CxKitty">
+    <img alt="Github Stars" src="https://img.shields.io/github/stars/SocialSisterYi/CxKitty">
     <img alt="Github Forks" src="https://img.shields.io/github/forks/SocialSisterYi/CxKitty">
     <img alt="Lines of code" src="https://img.shields.io/tokei/lines/github/SocialSisterYi/CxKitty">
-   	<img alt="Github License" src="https://img.shields.io/github/license/SocialSisterYi/CxKitty">
+    <img alt="Github License" src="https://img.shields.io/github/license/SocialSisterYi/CxKitty">
 </div>
 
 本项目旨在研究学习爬虫技术和网络接口编程技术，同时致力于以开源方式抵制并消灭各种付费“刷课平台”和“黑产”
+
+效果演示视频 https://www.bilibili.com/video/BV1yt4y1P7NF
 
 ## Features
 
@@ -22,11 +24,15 @@
 
 ### 暂不支持的功能
 
+以下特性有可能逐渐被添加
+
 - ❌短信验证码登录、学号登录
 - ❌文件任务点（如 word ppt pdf 等）
 - ❌直播任务点、文章阅读任务点、课程考试
 - ❌章节测验任务点简答题
 - ❌保存未完成的章节测验任务点
+- ❌多题库搜索器实例混用及负载均衡
+- ❌记录错题到日志
 
 ### 已知存在 BUG 的功能
 

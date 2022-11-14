@@ -5,6 +5,9 @@ from typing import Literal
 import difflib
 import requests
 
+def suffix_filter(text: str) -> str:
+    '过滤题目的各种符号后缀'
+    return text.strip('()（）.。?？')
 
 class SearcherBase:
     def __init__(self) -> None:
@@ -61,7 +64,10 @@ class JsonFileSearcher(SearcherBase):
     def invoke(self, question_value: str) -> tuple[dict, str]:
         for q, a in self.db.items():
             # 遍历题库缓存并判断相似度
-            if difflib.SequenceMatcher(a=q, b=question_value).ratio() >= 0.95:
+            if difflib.SequenceMatcher(
+                a=suffix_filter(q),
+                b=suffix_filter(question_value)
+            ).ratio() >= 0.9:
                 return {'code': 1, 'question': q, 'data': a}, 'data'
         else:
             return {'code': -1, 'error': '题目未匹配'}, 'data'
