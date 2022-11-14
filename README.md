@@ -124,25 +124,25 @@ searcher:
 
 单选题问题与答案应当一一对应，多选题使用`#`或`;`分隔每个选项，判断题答案只能为`对`、`错`、`正确`、`错误`、`√`、`×`
 
-REST API 搜题接口配置，确保接口 `searcher->restApiSearcher->url`可以正确访问访问 （如使用 Docker 搭建，宿主主机运行服务，则应使用宿主机 IP 而不是回环地址）
+REST API 搜题接口配置，确保接口`searcher->restApiSearcher->url`可以正确访问访问（如使用 Docker 搭建，宿主主机运行服务，则应使用宿主机虚拟网关 IP 地址而不是回环地址）
 
 eg：
 
 ```bash
 curl 'http://127.0.0.1:88/cx/v1' \
-	--data-urlencode 'question=国字的演变的过程告诉我们,国防就是国家的防务,国防与()是密不可分的'  #  这里`question`为请求字段名
+--data-urlencode 'question=国字的演变的过程告诉我们,国防就是国家的防务,国防与()是密不可分的'  #  这里`question`为请求字段名
 ```
 
 ```json
 {
     "code": 1,
     "question": "国字的演变的过程告诉我们,国防就是国家的防务,国防与()是密不可分的",
-    "data": "国家",  # 这里的`data`为响应字段名
+    "data": "国家",  // 这里的`data`为响应字段名
     "hit": true
 }
 ```
 
-JSON 题库，确保 key 为题目，value 为与之对应的答案
+JSON 题库，确保`searcher->jsonFileSearcher->file`可以访问（使用 Docker 需要设置映射），key 为题目，value 为与之对应的答案
 
 eg：
 
@@ -152,7 +152,7 @@ eg：
 }
 ```
 
-SQLite 题库，确保表中存在配置的请求和响应字段
+SQLite 题库，确保`searcher->sqliteSearcher->file`可以访问（使用 Docker 需要设置映射），表中应存在配置的请求和响应字段
 
 eg：
 
@@ -192,7 +192,7 @@ SELECT answer FROM questions WHERE question = '国字的演变的过程告诉我
 
 ## Disclaimers
 
-- 本项目以 [GPL-3.0 License]([CxKitty/LICENSE at main · SocialSisterYi/CxKitty (github.com)](https://github.com/SocialSisterYi/CxKitty/blob/main/LICENSE)) 作为开源协议，这意味着你需要遵守相应的规则
+- 本项目以 [GPL-3.0 License](https://github.com/SocialSisterYi/CxKitty/blob/main/LICENSE) 作为开源协议，这意味着你需要遵守相应的规则
 - 本项目仅适用于**学习研究**，任何人不得以此用于**盈利**
 - 使用本项目造成的任何后果与本人无关
 
