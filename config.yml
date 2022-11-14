@@ -34,5 +34,3 @@ searcher:
     table: "question"  # 表名
     req: "question"  # 请求字段
     rsp: "answer"  # 返回字段
-    
-
