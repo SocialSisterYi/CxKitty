@@ -58,8 +58,11 @@ class RestAPISearcher(SearcherBase):
 class JsonFileSearcher(SearcherBase):
     db: dict[str, str]
     def __init__(self, file_path: Path) -> None:
-        with open(file_path, 'r', encoding='utf8') as fp:
-            self.db = json.load(fp)
+        try:
+            with open(file_path, 'r', encoding='utf8') as fp:
+                self.db = json.load(fp)
+        except FileNotFoundError:
+            raise RuntimeError('JSON 题库文件无效, 请检查配置')
     
     def invoke(self, question_value: str) -> tuple[dict, str]:
         for q, a in self.db.items():

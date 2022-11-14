@@ -16,7 +16,7 @@ from cxapi.task_card.exam import ChapterExam
 from cxapi.task_card.video import ChapterVideo
 from searcher import JsonFileSearcher, RestAPISearcher, SqliteSearcher
 from utils import (SessionModule, ck2dict, dialog_login, mask_name, mask_phone,
-                   print_accinfo, save_session, sessions_load)
+                   print_accinfo, save_session, sessions_load, show_logo)
 
 try:
     import readline
@@ -163,6 +163,7 @@ def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
 
 if __name__ == '__main__':
     api = ChaoXingAPI()
+    show_logo(console)
     sessions = sessions_load(SESSION_PATH)
     # 存在至少一个会话存档
     if sessions:

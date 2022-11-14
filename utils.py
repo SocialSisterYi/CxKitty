@@ -10,6 +10,20 @@ from rich.console import Console
 
 from cxapi import ChaoXingAPI
 
+def show_logo(tui_ctx: Console):
+    '显示项目logo'
+    tui_ctx.print("""\
+[red]   ______[/][green]     __ __ _ __  __[/]
+[red]  / ____/  __[/][green]/ //_/(_) /_/ /___  __[/]
+[red] / /   | |/_[/][green]/ ,<  / / __/ __/ / / /[/]
+[red]/ /____>  <[/][green]/ /| |/ / /_/ /_/ /_/ /[/]
+[red]\\____/_/|_[/][green]/_/ |_/_/\\__/\\__/\\__, /[/]
+                          [green]/____/[/]
+[bold red]超星[/][red]学习通[/][green]答题姬[/]
+─────────────────────────────────────""",
+    highlight=False)
+    
+
 @dataclass
 class SessionModule:
     '会话数据模型'
@@ -129,4 +143,4 @@ def mask_phone(phone: str) -> str:
     '打码手机号'
     return phone[:3] + '****' + phone[-4:]
 
-__all__ = ['save_session', 'dialog_login', 'SessionModule', 'ck2dict', 'sessions_load', 'print_accinfo', 'mask_name', 'mask_phone']
+__all__ = ['save_session', 'dialog_login', 'SessionModule', 'ck2dict', 'sessions_load', 'print_accinfo', 'mask_name', 'mask_phone', 'show_logo']

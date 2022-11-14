@@ -77,12 +77,12 @@ docker build --tag cx_kitty .
 
 ```bash
 docker run -it \
-	--name shuake_task1 \
-	-v "$PWD/session:/app/session" \
-	-v "$PWD/config.yml:/app/config.yml" \  # 程序配置文件
-	#-v "$PWD/questions.json:/app/questions.json" \  # json题库 (根据配置文件修改路径映射)
-	#-v "$PWD/questions.db:/app/questions.db" \  # sqlite题库 (根据配置文件修改路径映射)
-	cx_kitty
+  --name shuake_task1 \
+  -v "$PWD/session:/app/session" \
+  -v "$PWD/config.yml:/app/config.yml" \  # 程序配置文件
+  #-v "$PWD/questions.json:/app/questions.json" \  # json题库 (根据配置文件修改路径映射)
+  #-v "$PWD/questions.db:/app/questions.db" \  # sqlite题库 (根据配置文件修改路径映射)
+  cx_kitty
 ```
 
 ## Configuration
@@ -138,7 +138,7 @@ eg：
 
 ```bash
 curl 'http://127.0.0.1:88/cx/v1' \
---data-urlencode 'question=国字的演变的过程告诉我们,国防就是国家的防务,国防与()是密不可分的'  #  这里`question`为请求字段名
+  --data-urlencode 'question=国字的演变的过程告诉我们,国防就是国家的防务,国防与()是密不可分的'  #  这里`question`为请求字段名
 ```
 
 ```json
@@ -156,7 +156,7 @@ eg：
 
 ```json
 {
-	"国字的演变的过程告诉我们,国防就是国家的防务,国防与()是密不可分的": "国家"
+  "国字的演变的过程告诉我们,国防就是国家的防务,国防与()是密不可分的": "国家"
 }
 ```
 
