@@ -35,7 +35,7 @@
 
 ## Typographical
 
-![](http://i0.hdslb.com/bfs/new_dyn/79597e2ef3ed815e6bd8821e36334218293793435.png)
+![](imgs/typo.png)
 
 ## Build Repo
 
@@ -79,7 +79,7 @@ docker run -it \
 
 ## Configuration
 
-配置文件使用 Yaml 语法编写，存放于`config.yml`
+配置文件使用 Yaml 语法编写，存放于 [config.yml](config.yml)
 
 ```yaml
 multiSession: true  # 是否开启多会话模式
@@ -172,15 +172,15 @@ SELECT answer FROM questions WHERE question = '国字的演变的过程告诉我
 
 若少于一个会话存档，则需要进行账号登录
 
-![](http://i0.hdslb.com/bfs/new_dyn/408b105cafad83ef620ed086da0166ee293793435.png)
+![](imgs/demo1.png)
 
 按照提示输入序号选择目标课程
 
-![](http://i0.hdslb.com/bfs/new_dyn/860cc5775085e7f717a17a0a49a4f0e4293793435.png)
+![](imgs/demo2.png)
 
 程序会自动完成视频及测验任务点，并展示章节任务点情况
 
-![](http://i0.hdslb.com/bfs/new_dyn/37ba3157de66d5d6aa1c2a3ce1e7a559293793435.png)
+![](imgs/demo3.png)
 
 ## About Repo Name
 
