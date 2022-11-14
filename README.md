@@ -41,6 +41,8 @@
 
 ### 本地化构建项目
 
+使用 Python 版本 >= 3.10.0
+
 clone 项目到本地，并使用 poetry 安装依赖和管理 venv
 
 ```bash
@@ -69,7 +71,7 @@ docker build --tag cx_kitty .
 
 ```bash
 docker run -it \
-	--name shuake_task2 \
+	--name shuake_task1 \
 	-v "$PWD/session:/app/session" \
 	-v "$PWD/config.yml:/app/config.yml" \  # 程序配置文件
 	#-v "$PWD/questions.json:/app/questions.json" \  # json题库 (根据配置文件修改路径映射)
