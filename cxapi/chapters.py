@@ -129,6 +129,8 @@ class ClassChapters:
         cards = content_json['data'][0]['card']['data']
         point_objs = []  # 任务点实例化列表
         for card_index, card in enumerate(cards):  # 遍历章节卡片
+            if card['description'] == '':
+                continue
             inline_html = lxml.html.fromstring(card['description'])
             points = inline_html.xpath("//iframe")
             for point in points:  # 遍历任务点列表

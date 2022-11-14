@@ -134,8 +134,10 @@ class ChapterExam:
         question_node = root.xpath("//div[@class='zquestions']/div[@class='Py-mian1']")
         self.questions = []
         for question in question_node:  # 遍历题目
-            if (value := question.xpath("div/div[contains(@class, 'Py-m1-title')]/text()")[1].strip()) == '':
-                value = question.xpath("div/div[contains(@class, 'Py-m1-title')]/span/text()")[1].strip()
+            # 查找并净化题目字符串
+            # 因为题目所在标签不确定, 可能为 div.Py-m1-title/ 也可能为 div.Py-m1-title/span 也可能为 div.Py-m1-title/p
+            q_title_node = question.xpath("div/div[contains(@class, 'Py-m1-title')]")[0]
+            value = ''.join(q_title_node.xpath("text() | */text()")[2:]).strip().replace('\n', '').replace('\r', '')
             if r := re.match(r'answers?(\d+)', question.xpath("div/input[@class='answerInput']/@id")[0]):
                 question_id = int(r.group(1))
             else:
