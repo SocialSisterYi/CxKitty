@@ -61,7 +61,7 @@ class JsonFileSearcher(SearcherBase):
     def invoke(self, question_value: str) -> tuple[dict, str]:
         for q, a in self.db.items():
             # 遍历题库缓存并判断相似度
-            if difflib.SequenceMatcher(a=q, b=question_value).ratio() >= 0.8:
+            if difflib.SequenceMatcher(a=q, b=question_value).ratio() >= 0.95:
                 return {'code': 1, 'question': q, 'data': a}, 'data'
         else:
             return {'code': -1, 'error': '题目未匹配'}, 'data'
