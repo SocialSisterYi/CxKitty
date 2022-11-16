@@ -1,8 +1,10 @@
+import difflib
 import json
 import sqlite3
 from pathlib import Path
 from typing import Literal
-import difflib
+
+import jsonpath
 import requests
 
 def suffix_filter(text: str) -> str:
@@ -10,10 +12,15 @@ def suffix_filter(text: str) -> str:
     return text.strip('()（）.。?？')
 
 class SearcherBase:
-    def __init__(self) -> None:
-        pass
+    '搜索器基类'
+    req_field: str  # 请求字段
+    rsp_query: jsonpath.JSONPath  # 返回字段选择器
     
-    def invoke(self, question_value: str) -> tuple[dict, str]:
+    def __init__(self, req_field: str='question', rsp_field: str='$.data') -> None:
+        self.req_field = req_field
+        self.rsp_query = jsonpath.compile(rsp_field)
+    
+    def invoke(self, question_value: str) -> dict:
         """
         搜题器调用接口
         规定第一个返回值结果dict
@@ -33,66 +40,64 @@ class RestAPISearcher(SearcherBase):
     session: requests.Session
     url: str
     method: Literal['GET', 'POST']
-    req: str
-    rsp: str
-    def __init__(self, url, method: Literal['GET', 'POST']='POST', req: str='question', rsp: str='data') -> None:
+    
+    def __init__(self, url, req_field: str, rsp_field: str, method: Literal['GET', 'POST']='POST') -> None:
         self.session = requests.Session()
         self.url = url
         self.method = method
-        self.req = req
-        self.rsp = rsp
+        super().__init__(req_field, rsp_field)
     
-    def invoke(self, question_value: str) -> tuple[dict, str]:
+    def invoke(self, question_value: str) -> dict:
         try:
             if self.method == 'GET':
-                resp = self.session.get(self.url, params={self.req: question_value})
+                resp = self.session.get(self.url, params={self.req_field: question_value})
             elif self.method == 'POST':
-                resp = self.session.post(self.url, data={self.req: question_value})
+                resp = self.session.post(self.url, data={self.req_field: question_value})
             else:
                 raise TypeError
             resp.raise_for_status()
-            return resp.json(), self.rsp
+            return resp.json()
         except Exception as err:
-            return {'code': -1, 'error': f'{err.__str__()}'}, self.rsp
+            return {'code': -1, 'error': f'{err.__str__()}'}
 
 class JsonFileSearcher(SearcherBase):
     db: dict[str, str]
+    
     def __init__(self, file_path: Path) -> None:
         try:
             with open(file_path, 'r', encoding='utf8') as fp:
                 self.db = json.load(fp)
         except FileNotFoundError:
             raise RuntimeError('JSON 题库文件无效, 请检查配置')
+        super().__init__('', '$.data')
     
-    def invoke(self, question_value: str) -> tuple[dict, str]:
+    def invoke(self, question_value: str) -> dict:
         for q, a in self.db.items():
             # 遍历题库缓存并判断相似度
             if difflib.SequenceMatcher(
                 a=suffix_filter(q),
                 b=suffix_filter(question_value)
             ).ratio() >= 0.9:
-                return {'code': 1, 'question': q, 'data': a}, 'data'
-        else:
-            return {'code': -1, 'error': '题目未匹配'}, 'data'
+                return {'code': 1, 'question': q, 'data': a}
+        return {'code': -1, 'error': '题目未匹配'}
 
 class SqliteSearcher(SearcherBase):
     db: sqlite3.Connection
-    req: str
-    rsp: str
     table: str
+    rsp_field: str
     
-    def __init__(self, file_path: Path, table: str='question', req: str='question', rsp: str='answer') -> None:
+    def __init__(self, file_path: Path, req_field: str, rsp_field: str, table: str='question') -> None:
         self.db = sqlite3.connect(file_path)
         self.table = table
-        self.req = req
-        self.rsp = rsp
+        self.rsp_field = rsp_field
+        super().__init__(req_field, '$.data')
         
-    def invoke(self, question_value: str):
+    def invoke(self, question_value: str) -> dict:
         try:
-            cur = self.db.execute(f'SELECT {self.req},{self.rsp} FROM {self.table} WHERE {self.req}=(?)', (question_value,))
+            cur = self.db.execute(f'SELECT {self.req_field},{self.rsp_field} FROM {self.table} WHERE {self.req_field}=(?)', (question_value,))
             q, a = cur.fetchone()
-            return {'code': 1, 'question': q, 'data': a}, self.rsp
+            return {'code': 1, 'question': q, 'data': a}
         except Exception as err:
-            return {'code': -1, 'error': f'{err.__str__()}'}, self.rsp
+            return {'code': -1, 'error': f'{err.__str__()}'}
 
 __all__ = ['SearcherBase', 'RestAPISearcher', 'JsonFileSearcher', 'SqliteSearcher']

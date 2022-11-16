@@ -21,10 +21,10 @@ searcher:
   use: "jsonFileSearcher"  # 当前选择的搜索器
   # REST API 在线搜题
   restApiSearcher:
-    url: "http://127.0.0.1:88/cx/v1"  # API url
+    url: "http://127.0.0.1:88/v1/cx"  # API url
     method: "POST"  # 请求方式
     req: "question"  # 请求参数
-    rsp: "data"  # 返回参数
+    rsp: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
   # 本地 JSON 数据库搜索器 (key为题, value为答案)
   jsonFileSearcher:
     path: "questions.json"  # 数据库文件路径

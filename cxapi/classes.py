@@ -28,6 +28,10 @@ class Classes:
         self.puid = puid
         self.classes = []
         for c in classes_lst:
+            # 未知 bug
+            # 有些课程不存在`content`字段, 跳过处理
+            if 'course' not in c['content']:
+                continue
             # ORM
             self.classes.append(ClassModule(
                 cpi          = c['cpi'],

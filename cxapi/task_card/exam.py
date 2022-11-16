@@ -6,12 +6,15 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+import jsonpath
 import lxml.html
 import requests
 from rich.json import JSON
 from rich.layout import Layout
 from rich.panel import Panel
 from rich.table import Table
+
+from searcher import SearcherBase
 
 API_EXAM_COMMIT = 'https://mooc1-api.chaoxing.com/work/addStudentWorkNew'        # 接口-单元测验答题提交
 PAGE_MOBILE_CHAPTER_CARD = 'https://mooc1-api.chaoxing.com/knowledge/cards'      # SSR页面-客户端章节任务卡片
@@ -57,7 +60,7 @@ class ChapterExam:
     # 答题参数
     questions: list[QuestionModel]
     # 搜题器对象
-    searcher: Any
+    searcher: SearcherBase
     # 施法参数
     need_jobid: bool
     
@@ -171,10 +174,13 @@ class ChapterExam:
             ))
         return True
     
-    def __fill_answer(self, question: QuestionModel, search_resp: dict, answer_field: str) -> bool:
+    def __fill_answer(self, question: QuestionModel, search_resp: dict) -> bool:
         '查询并填充对应选项'
         if search_resp.get('code') == 1:
-            search_answer: str = search_resp[answer_field].strip()
+            if (r := self.searcher.rsp_query.parse(search_resp)):
+                search_answer: str = r[0].strip()
+            else:
+                return False  # JsonPath 选择器匹配失败返回
             match question.question_type:
                 case QuestionEnum.单选题:
                     for k, v in question.answers.items():
@@ -223,12 +229,12 @@ class ChapterExam:
         tb.border_style = 'yellow'
         mistake_questions = {}  # 答错题列表
         for question in self.questions:
-            search_resp, answer_field = self.searcher.invoke(question.value)  # 调用搜索器
+            search_resp = self.searcher.invoke(question.value)  # 调用搜索器搜索方法
             msg.update(Panel(
                 JSON.from_data(search_resp, ensure_ascii=False),
                 title='题库接口返回'
             ))
-            status = self.__fill_answer(question, search_resp, answer_field)  # 填充选项
+            status = self.__fill_answer(question, search_resp)  # 填充选项
             tb.add_row(
                 str(question.question_id),
                 question.question_type.name,
@@ -236,7 +242,7 @@ class ChapterExam:
                 (f'[green]{question.option}' if status else '[red]未匹配')
             )
             if status == False:
-                mistake_questions[question.value] = search_resp.get('data')
+                mistake_questions[question.value] = self.searcher.rsp_query.parse(search_resp)  # 记录错题
             time.sleep(1.0)
         # 没有错误
         if (mistake_num := len(mistake_questions)) == 0:

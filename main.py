@@ -34,8 +34,8 @@ if CONFIG['exam']['enable']:
             searcher = RestAPISearcher(
                 url=CONFIG['searcher']['restApiSearcher']['url'],
                 method=CONFIG['searcher']['restApiSearcher']['method'],
-                req=CONFIG['searcher']['restApiSearcher']['req'],
-                rsp=CONFIG['searcher']['restApiSearcher']['rsp']
+                req_field=CONFIG['searcher']['restApiSearcher']['req'],
+                rsp_field=CONFIG['searcher']['restApiSearcher']['rsp']
             )
         case 'jsonFileSearcher':
             searcher = JsonFileSearcher(
@@ -45,8 +45,8 @@ if CONFIG['exam']['enable']:
             searcher = SqliteSearcher(
                 file_path=Path(CONFIG['searcher']['sqliteSearcher']['path']),
                 table=CONFIG['searcher']['sqliteSearcher']['table'],
-                req=CONFIG['searcher']['sqliteSearcher']['req'],
-                rsp=CONFIG['searcher']['sqliteSearcher']['rsp']
+                req_field=CONFIG['searcher']['sqliteSearcher']['req'],
+                rsp_field=CONFIG['searcher']['sqliteSearcher']['rsp']
             )
         case _:
             raise TypeError('不合法的搜索器类型')
@@ -183,7 +183,7 @@ if __name__ == '__main__':
         dialog_class(api)
     except Exception as err:
         console.print_exception(show_locals=False)
-        console.print('[bold red]程序运行出现错误, 请截图保存并提交')
+        console.print('[bold red]程序运行出现错误, 请截图保存并在issiue中提交')
     except KeyboardInterrupt:
         console.print('[yellow]手动中断程序运行')
     else:

@@ -21,6 +21,7 @@
 - ✅视频课程任务点模拟播放
 - ✅章节测验任务点自动答题，支持单选题、多选题、判断题
 - ✅支持`REST API`、`JSON`、`SQLite`三种类型的题库
+- ✅`REST API`类型（在线题库接口）支持使用 JsonPath 语法进行答案字段提取
 
 ### 暂不支持的功能
 
@@ -113,10 +114,10 @@ searcher:
   use: "jsonFileSearcher"  # 当前选择的搜索器
   # REST API 在线搜题
   restApiSearcher:
-    url: "http://127.0.0.1:88/cx/v1"  # API url
+    url: "http://127.0.0.1:88/v1/cx"  # API url
     method: "POST"  # 请求方式
     req: "question"  # 请求参数
-    rsp: "data"  # 返回参数
+    rsp: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
   # 本地 JSON 数据库搜索器 (key为题, value为答案)
   jsonFileSearcher:
     path: "questions.json"  # 数据库文件路径
@@ -134,10 +135,12 @@ searcher:
 
 REST API 搜题接口配置，确保接口`searcher->restApiSearcher->url`可以正确访问访问（如使用 Docker 搭建，宿主主机运行服务，则应使用宿主机虚拟网关 IP 地址而不是回环地址）
 
+返回值必须为 Json 格式，使用`rsp`字段作为选择器传入，使用 [JsonPath](https://goessner.net/articles/JsonPath/) 语法编写，如`$.data`或`$.data.answer[*]`等
+
 eg：
 
 ```bash
-curl 'http://127.0.0.1:88/cx/v1' \
+curl 'http://127.0.0.1:88/v1/cx' \
   --data-urlencode 'question=国字的演变的过程告诉我们,国防就是国家的防务,国防与()是密不可分的'  #  这里`question`为请求字段名
 ```
 
