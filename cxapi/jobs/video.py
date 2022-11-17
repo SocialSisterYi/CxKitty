@@ -10,6 +10,8 @@ from rich.layout import Layout
 from rich.panel import Panel
 from rich.progress import Progress
 
+from ..utils import get_dc
+
 PAGE_MOBILE_CHAPTER_CARD = 'https://mooc1-api.chaoxing.com/knowledge/cards'      # SSR页面-客户端章节任务卡片
 API_CHAPTER_CARD_RESOURCE = 'https://mooc1-api.chaoxing.com/ananas/status'       # 接口-课程章节卡片资源
 API_VIDEO_PLAYREPORT = 'https://mooc1-api.chaoxing.com/multimedia/log/a'         # 接口-视频播放上报
@@ -22,7 +24,8 @@ class ChapterVideo:
     clazzid: int
     courseid: int
     knowledgeid: int
-    card_index: int
+    card_index: int  # 卡片索引位置
+    point_index: int  # 任务点索引位置
     cpi: int
     puid: int
     # 视频参数
@@ -34,7 +37,7 @@ class ChapterVideo:
     otherInfo: str
     title: str
     
-    def __init__(self, session: requests.Session, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int, puid: int) -> None:
+    def __init__(self, session: requests.Session, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int, puid: int, point_index: int) -> None:
         self.session = session
         self.clazzid = clazzid
         self.courseid = courseid
@@ -43,7 +46,7 @@ class ChapterVideo:
         self.objectid = objectid
         self.cpi = cpi
         self.puid = puid
-        ...
+        self.point_index = point_index
     
     def pre_fetch(self) -> bool:
         '预拉取视频  返回是否需要完成'
@@ -63,9 +66,9 @@ class ChapterVideo:
             else:
                 raise ValueError
             self.fid = j['defaults']['fid']
-            self.jobid = j['attachments'][0]['jobid']
-            self.otherInfo = j['attachments'][0]['otherInfo']
-            needtodo = j['attachments'][0].get('isPassed') in (False, None)
+            self.jobid = j['attachments'][self.point_index]['jobid']
+            self.otherInfo = j['attachments'][self.point_index]['otherInfo']
+            needtodo = j['attachments'][self.point_index].get('isPassed') in (False, None)
         except Exception:
             raise RuntimeError('视频预拉取出错')
         return needtodo
@@ -77,7 +80,7 @@ class ChapterVideo:
             params={
                 'k': self.fid,
                 'flag': 'normal',
-                '_dc': int(time.time() * 1000)
+                '_dc': get_dc()
             }
         )
         resp.raise_for_status()

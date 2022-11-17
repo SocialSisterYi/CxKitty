@@ -1,7 +1,7 @@
 import json
 import time
 from dataclasses import dataclass
-from typing import Union
+from typing import TypeVar
 
 import lxml.html
 import requests
@@ -9,9 +9,12 @@ from rich.layout import Layout
 from rich.panel import Panel
 
 from .exceptions import APIError
-from .task_card.exam import ChapterExam
-from .task_card.video import ChapterVideo
+from .jobs.document import ChapterDocument
+from .jobs.exam import ChapterExam
+from .jobs.video import ChapterVideo
 from .utils import calc_infenc
+
+TaskPointType = TypeVar('TaskPointType', ChapterExam, ChapterVideo, ChapterDocument)
 
 API_CHAPTER_POINT = 'https://mooc1-api.chaoxing.com/job/myjobsnodesmap'          # 接口-课程章节任务点状态
 API_CHAPTER_CARDS = 'https://mooc1-api.chaoxing.com/gas/knowledge'               # 接口-课程章节卡片
@@ -35,10 +38,10 @@ class ClassChapters:
     session: requests.Session
     chapters: list[ChapterModel]
     # 课程参数
-    courseid: int
-    clazzid: int
+    courseid: int  # 课程 id
+    clazzid: int  # 班级 id
     cpi: int
-    puid: int
+    puid: int  # 用户 puid
     
     def __init__(self, session: requests.Session, courseid: int, clazzid: int, cpi: int, puid: int, chapter_lst: list[dict]) -> None:
         self.session = session
@@ -111,7 +114,7 @@ class ClassChapters:
             c.point_total = point_data['totalcount']
             c.point_finish = point_data['finishcount']
     
-    def fetch_points_by_index(self, num: int) -> list[Union[ChapterExam, ChapterVideo]]:
+    def fetch_points_by_index(self, num: int) -> list[TaskPointType]:
         '以课程序号拉取对应“章节”的任务节点卡片资源'
         params = {
             'id': self.chapters[num].chapter_id,
@@ -133,19 +136,21 @@ class ClassChapters:
                 continue
             inline_html = lxml.html.fromstring(card['description'])
             points = inline_html.xpath("//iframe")
-            for point in points:  # 遍历任务点列表
-                # 获取任务点类型 非视频和试题跳过
+            for point_index, point in enumerate(points):  # 遍历任务点列表
+                # 获取任务点类型 跳过不存在 Type 的任务点
                 if point_type := point.xpath("@module"):
                     point_type = point_type[0]
                 else:
                     continue
                 json_data = json.loads(point.xpath("@data")[0])
+                # 进行分类讨论任务点类型并做 ORM
                 match point_type:
                     case 'insertvideo':
                         # 视频任务点
                         point_objs.append(ChapterVideo(
                             session=self.session,
                             card_index=card_index,
+                            point_index=point_index,
                             courseid=self.courseid,
                             knowledgeid=self.chapters[num].chapter_id,
                             objectid=json_data['objectid'],
@@ -158,6 +163,7 @@ class ClassChapters:
                         point_objs.append(ChapterExam(
                             session=self.session,
                             card_index=card_index,
+                            point_index=point_index,
                             courseid=self.courseid,
                             workid=json_data['workid'],
                             jobid=json_data['_jobid'],
@@ -165,5 +171,18 @@ class ClassChapters:
                             puid=self.puid,
                             clazzid=self.clazzid,
                             cpi=self.cpi
+                        ))
+                    case 'insertdoc':
+                        # 文档查看任务点
+                        point_objs.append(ChapterDocument(
+                            session=self.session,
+                            card_index=card_index,
+                            point_index=point_index,
+                            courseid=self.courseid,
+                            knowledgeid=self.chapters[num].chapter_id,
+                            puid=self.puid,
+                            clazzid=self.clazzid,
+                            cpi=self.cpi,
+                            objectid=json_data['objectid']
                         ))
         return point_objs

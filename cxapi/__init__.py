@@ -1,4 +1,5 @@
 import base64
+import re
 
 import lxml.html
 import requests
@@ -26,20 +27,23 @@ class ChaoXingAPI:
     qr_uuid: str
     qr_enc: str
     # 账号个人信息
-    puid: int
-    name: str
-    sex: str
-    phone: str
+    puid: int  # 用户 puid
+    name: str  # 真实姓名
+    sex: str  # 性别
+    phone: str  # 手机号
+    schools: list  # 单位列表
     
     def __init__(self) -> None:
         self.session = requests.Session()
+        # 默认使用 APP 的 UA, 因为一些接口为 APP 独占
         self.session.headers['User-Agent'] = UA_MOBILE
+        self.schools = []
 
-    def set_ck(self, ck: dict[str, str]) -> None:
+    def ck_load(self, ck: dict[str, str]) -> None:
         '加载dict格式的ck'
         requests.utils.add_dict_to_cookiejar(self.session.cookies, ck)
     
-    def get_ck(self) -> dict[str, str]:
+    def ck_dump(self) -> dict[str, str]:
         '输出ck为dict'
         return requests.utils.dict_from_cookiejar(self.session.cookies)
         
@@ -66,7 +70,7 @@ class ChaoXingAPI:
             return False, content_json
         return True, content_json
     
-    def get_qr(self) -> None:
+    def qr_get(self) -> None:
         '获取二维码登录key'
         self.session.cookies.clear()
         resp = self.session.get(PAGE_LOGIN,
@@ -86,7 +90,7 @@ class ChaoXingAPI:
         })
         resp.raise_for_status()
     
-    def get_qrurl(self) -> str:
+    def qr_geturl(self) -> str:
         '合成二维码内容url'
         return f'https://passport2.chaoxing.com/toauthlogin?uuid={self.qr_uuid}&enc={self.qr_enc}&xxtrefer=&clientid=&type=0&mobiletip='
     
@@ -107,11 +111,18 @@ class ChaoXingAPI:
         root = lxml.html.fromstring(resp.content)
         info = root.xpath("//div[@class='infoDiv']")[0]
         # 开始解析数据
-        if x:= info.xpath("//p[@id='uid']/text()"):
+        if x:= info.xpath("//p[@id='uid']/text()"):  # 获取 puid 同时判定 session 的有效性
             self.puid = int(x[0])
-            self.name = info.xpath("//p[@id='messageName']/text()")[0]
-            self.sex = info.xpath("//p[contains(@class,'sex')]/span/text()")[0].strip()
-            self.phone = info.xpath("//span[@id='messagePhone']/text()")[0]
+            self.name = info.xpath("//p[@id='messageName']/text()")[0]  # 获取姓名
+            self.sex = info.xpath("//p[contains(@class,'sex')]/span/text()")[0].strip()  # 获取性别
+            self.phone = info.xpath("//span[@id='messagePhone']/text()")[0]  # 获取手机号
+            for sch in info.xpath("//ul[@class='listCon']/li"):  # 获取单位列表
+                school_name = sch.xpath("text()")[0].strip()
+                if (r := re.search(r'(\d+)', sch.xpath("p[@class='xuehao']/text()")[0])) is not None:
+                    student_id = int(r.group(1))
+                else:
+                    student_id = None
+                self.schools.append((school_name, student_id))
             return True
         return False
     

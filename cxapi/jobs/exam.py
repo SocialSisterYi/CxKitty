@@ -39,7 +39,8 @@ class ChapterExam:
     '章节测验'
     session: requests.Session
     # 基本参数
-    card_index: int
+    card_index: int  # 卡片索引位置
+    point_index: int  # 任务点索引位置
     courseid: int
     knowledgeid: int
     cpi: int
@@ -64,7 +65,7 @@ class ChapterExam:
     # 施法参数
     need_jobid: bool
     
-    def __init__(self, session: requests.Session, card_index: int, courseid: int, workid: str, jobid: str, knowledgeid: int, puid: int, clazzid: int, cpi: int) -> None:
+    def __init__(self, session: requests.Session, card_index: int, courseid: int, workid: str, jobid: str, knowledgeid: int, puid: int, clazzid: int, cpi: int, point_index: int) -> None:
         self.session = session
         self.card_index = card_index
         self.courseid = courseid
@@ -74,6 +75,7 @@ class ChapterExam:
         self.puid = puid
         self.clazzid = clazzid
         self.cpi = cpi
+        self.point_index = point_index
     
     def pre_fetch(self) -> bool:
         '预拉取试题  返回是否需要完成'
@@ -93,8 +95,8 @@ class ChapterExam:
             else:
                 raise ValueError
             self.ktoken = j['defaults']['ktoken']
-            self.enc = j['attachments'][0]['enc']
-            if (job := j['attachments'][0].get('job')) is not None:
+            self.enc = j['attachments'][self.point_index]['enc']
+            if (job := j['attachments'][self.point_index].get('job')) is not None:
                 needtodo = job in (True, None)  # 这里有部分试题不存在`job`字段
                 self.need_jobid = True  # 不知道为什么这里的`job`字段和请求试题的接口的`jobid`参数有关
             else:

@@ -12,8 +12,9 @@ from rich.table import Table
 
 from cxapi import ChaoXingAPI
 from cxapi.chapters import ClassChapters
-from cxapi.task_card.exam import ChapterExam
-from cxapi.task_card.video import ChapterVideo
+from cxapi.jobs.document import ChapterDocument
+from cxapi.jobs.exam import ChapterExam
+from cxapi.jobs.video import ChapterVideo
 from searcher import JsonFileSearcher, RestAPISearcher, SqliteSearcher
 from utils import (SessionModule, ck2dict, dialog_login, mask_name, mask_phone,
                    print_accinfo, save_session, sessions_load, show_logo)
@@ -51,6 +52,13 @@ if CONFIG['exam']['enable']:
         case _:
             raise TypeError('不合法的搜索器类型')
 
+def wait_for_class(tui_ctx: Layout, wait_sec: int, text: str):
+    '课间等待, 防止风控'
+    tui_ctx.unsplit()
+    for i in range(wait_sec):
+        tui_ctx.update(Panel(f'[green]{text}, 课间等待{i}/{wait_sec}s'))
+        time.sleep(1.0)
+
 def fuck_video_and_exam_mainloop(chap: ClassChapters):
     '章节课程及答题主循环'
     lay = Layout()
@@ -81,11 +89,7 @@ def fuck_video_and_exam_mainloop(chap: ClassChapters):
                     task_point.mount_searcher(searcher)
                     task_point.fill_and_commit(lay_main)
                     # 开始等待
-                    wait_sec = CONFIG['exam']['wait']
-                    lay_main.unsplit()
-                    for i in range(wait_sec):
-                        lay_main.update(Panel(f'[green]试题《{task_point.title}》已结束, 课间等待{i}/{wait_sec}s'))
-                        time.sleep(1.0)
+                    wait_for_class(lay_main, CONFIG['exam']['wait'], f'试题《{task_point.title}》已结束')
                 
                 # 视频类型
                 elif isinstance(task_point, ChapterVideo):
@@ -93,11 +97,16 @@ def fuck_video_and_exam_mainloop(chap: ClassChapters):
                         continue
                     task_point.playing(lay_main, CONFIG['video']['speed'], CONFIG['video']['report_rate'])
                     # 开始等待
-                    wait_sec = CONFIG['video']['wait']
-                    lay_main.unsplit()
-                    for i in range(wait_sec):
-                        lay_main.update(Panel(f'[green]视频《{task_point.title}》已结束, 课间等待{i}/{wait_sec}s'))
-                        time.sleep(1.0)
+                    wait_for_class(lay_main, CONFIG['video']['wait'], f'视频《{task_point.title}》已结束')
+                
+                # 文档类型
+                elif isinstance(task_point, ChapterDocument):
+                    if not CONFIG['document']['enable']:  # 是否配置跳过文档
+                        continue
+                    task_point.reading(lay_main)
+                    # 开始等待
+                    wait_for_class(lay_main, CONFIG['document']['wait'], f'文档《{task_point.title}》已结束')
+                
                 # 析构任务点对象
                 del task_point
             chap.fetch_point_status()  # 刷新章节任务点状态
@@ -121,7 +130,7 @@ def dialog_class(cx: ChaoXingAPI):
 
 def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
     '选择“会话”交互'
-    tb = Table('序号', '手机号', 'puid', '姓名', title='选择欲读档的会话')
+    tb = Table('序号', '手机号', 'puid', '姓名', title='请选择欲读档的会话')
     for index, session in enumerate(sessions):
         tb.add_row(
             f'[green]{index}',
@@ -141,7 +150,7 @@ def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
         elif inp.isdigit():
             index = int(inp)
             ck = ck2dict(sessions[index].ck)
-            api.set_ck(ck)
+            api.ck_load(ck)
             if not api.accinfo():
                 console.print('[red]会话失效, 尝试重新登录')
                 # 自动重登逻辑
@@ -173,7 +182,7 @@ if __name__ == '__main__':
         # 关闭多会话, 默认加载第一个会话存档
         else:
             ck = ck2dict(sessions[0].ck)
-            api.set_ck(ck)
+            api.ck_load(ck)
     # 会话存档为空
     else:
         console.print('[yellow]会话存档为空, 请登录账号')

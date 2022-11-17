@@ -58,7 +58,7 @@ def save_session(session_path: Path, api: ChaoXingAPI, passwd: Optional[str]=Non
             'puid': api.puid,
             'passwd': passwd,
             'name': api.name,
-            'ck': dict2ck(api.get_ck())
+            'ck': dict2ck(api.ck_dump())
         }
         json.dump(sessdata, fp, ensure_ascii=False)
 
@@ -83,7 +83,7 @@ def sessions_load(session_path: Path):
 
 def print_accinfo(tui_ctx: Console, api: ChaoXingAPI):
     '显示账号信息到终端'
-    tui_ctx.print(f"[green]账号已登录[/] puid={api.puid} name={api.name}")
+    tui_ctx.print(f"[green]账号已登录[/] puid={api.puid} name={api.name} schools={api.schools}")
 
 def dialog_login(tui_ctx: Console, session_path: Path, api: ChaoXingAPI):
     '密码和二维码“登录”交互'
@@ -91,9 +91,9 @@ def dialog_login(tui_ctx: Console, session_path: Path, api: ChaoXingAPI):
         uname = tui_ctx.input('[yellow]请输入手机号, 留空为二维码登录：')
         # 二维码登录
         if uname == '':
-            api.get_qr()
+            api.qr_get()
             qr = QRCode()
-            qr.add_data(api.get_qrurl())
+            qr.add_data(api.qr_geturl())
             qr.print_ascii()  # 打印二维码到终端
             tui_ctx.print('[yellow]等待扫描')
             flag_scanned = False

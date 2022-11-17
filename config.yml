@@ -16,6 +16,11 @@ exam:
   wait: 15  # 完成等待时间
   #fail_save: true  # 是否匹配失败自动保存 (未实现)
 
+# 文档
+document:
+  enable: true  # 是否执行任务
+  wait: 15  # 完成等待时间
+
 # 搜索器
 searcher:
   use: "jsonFileSearcher"  # 当前选择的搜索器
