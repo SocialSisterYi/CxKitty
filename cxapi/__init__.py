@@ -109,14 +109,13 @@ class ChaoXingAPI:
         resp = self.session.get(PAGE_ACCINFO)
         resp.raise_for_status()
         root = lxml.html.fromstring(resp.content)
-        info = root.xpath("//div[@class='infoDiv']")[0]
         # 开始解析数据
-        if x:= info.xpath("//p[@id='uid']/text()"):  # 获取 puid 同时判定 session 的有效性
+        if x:= root.xpath("//p[@id='uid']/text()"):  # 获取 puid 同时判定 session 的有效性
             self.puid = int(x[0])
-            self.name = info.xpath("//p[@id='messageName']/text()")[0]  # 获取姓名
-            self.sex = info.xpath("//p[contains(@class,'sex')]/span/text()")[0].strip()  # 获取性别
-            self.phone = info.xpath("//span[@id='messagePhone']/text()")[0]  # 获取手机号
-            for sch in info.xpath("//ul[@class='listCon']/li"):  # 获取单位列表
+            self.name = root.xpath("//p[@id='messageName']/text() | //span[@id='messageName']/text()")[0]  # 获取姓名
+            self.sex = root.xpath("//p[contains(@class,'sex')]/span/text()")[0].strip()  # 获取性别
+            self.phone = root.xpath("//span[@id='messagePhone']/text()")[0]  # 获取手机号
+            for sch in root.xpath("//ul[@class='listCon']/li"):  # 获取单位列表
                 school_name = sch.xpath("text()")[0].strip()
                 if (r := re.search(r'(\d+)', sch.xpath("p[@class='xuehao']/text()")[0])) is not None:
                     student_id = int(r.group(1))

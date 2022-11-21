@@ -1,4 +1,6 @@
 #!/bin/python3
+import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -130,6 +132,23 @@ def dialog_class(cx: ChaoXingAPI):
 
 def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
     '选择“会话”交互'
+    
+    def relogin(index: int):
+        phone = sessions[index].phone
+        passwd = sessions[index].passwd
+        if passwd is not None:
+            status, acc = api.login_passwd(phone, passwd)
+            if status:
+                console.print('[green]重新登录成功')
+                console.print(acc)
+                api.accinfo()
+                save_session(SESSION_PATH, api, passwd)
+                return
+            else:
+                console.print('[red]登录失败, 清手动登录')
+        else:
+            console.print('[red]找不到密码, 无法重登')
+    
     tb = Table('序号', '手机号', 'puid', '姓名', title='请选择欲读档的会话')
     for index, session in enumerate(sessions):
         tb.add_row(
@@ -140,35 +159,26 @@ def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
         )
     console.print(tb)
     while True:
-        inp = console.input('输入会话序号选择, 留空登录新账号, 退出输入q：')
+        inp = console.input('输入会话序号选择 (序号后加r重登), 留空登录新账号, 退出输入q：')
         if inp == '':
             dialog_login(console, SESSION_PATH, api)
             if api.accinfo():
                 return
         elif inp == 'q':
             sys.exit()
-        elif inp.isdigit():
-            index = int(inp)
-            ck = ck2dict(sessions[index].ck)
-            api.ck_load(ck)
-            if not api.accinfo():
-                console.print('[red]会话失效, 尝试重新登录')
+        elif r := re.match(r'^(\d+)(r?)', inp):
+            index = int(r.group(1))
+            if r.group(2) == 'r':
+                relogin(index)
+            else:
+                ck = ck2dict(sessions[index].ck)
+                api.ck_load(ck)
                 # 自动重登逻辑
-                phone = sessions[index].phone
-                passwd = sessions[index].passwd
-                if passwd is not None:
-                    status, acc = api.login_passwd(phone, passwd)
-                    if status:
-                        console.print('[green]重新登录成功')
-                        console.print(acc)
-                        api.accinfo()
-                        save_session(SESSION_PATH, api, passwd)
-                        return
-                    else:
-                        console.print('[red]登录失败, 清手动登录')
-                dialog_login(console, SESSION_PATH, api)
-                continue
-            return
+                if not api.accinfo():
+                    console.print('[red]会话失效, 尝试重新登录')
+                    relogin(index)
+                return
+            
 
 if __name__ == '__main__':
     api = ChaoXingAPI()
@@ -190,6 +200,8 @@ if __name__ == '__main__':
     print_accinfo(console, api)
     try:
         dialog_class(api)
+    except json.JSONDecodeError:
+        console.print('[red]JSON 解析失败, 可能为账号 ck 失效, 请重新登录该账号 (序号+r)')
     except Exception as err:
         console.print_exception(show_locals=False)
         console.print('[bold red]程序运行出现错误, 请截图保存并在issiue中提交')

@@ -10,6 +10,7 @@ from rich.console import Console
 
 from cxapi import ChaoXingAPI
 
+
 def show_logo(tui_ctx: Console):
     '显示项目logo'
     tui_ctx.print("""\
