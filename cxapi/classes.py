@@ -1,31 +1,22 @@
-from dataclasses import dataclass
+
 import requests
 from rich.table import Table
+
 from .chapters import ClassChapters
 from .exceptions import APIError
+from .schema import AccountInfo, ClassModule
 
 API_CHAPTER_LST = 'https://mooc1-api.chaoxing.com/gas/clazz'                     # 接口-课程章节列表
 
-@dataclass
-class ClassModule:
-    '课程数据模型'
-    courseid: int
-    clazzid: int
-    cpi: int
-    key: int
-    name: str
-    teacher_name: str
-    state: int
-    
 
 class Classes:
     session: requests.Session
     classes: list[ClassModule]
-    puid: int
+    acc: AccountInfo
     
-    def __init__(self, session: requests.Session, puid: int, classes_lst: list[dict]) -> None:
+    def __init__(self, session: requests.Session, acc: AccountInfo, classes_lst: list[dict]) -> None:
         self.session = session
-        self.puid = puid
+        self.acc = acc
         self.classes = []
         for c in classes_lst:
             # 未知 bug
@@ -67,9 +58,9 @@ class Classes:
             raise APIError
         return ClassChapters(
             session=self.session,
+            acc=self.acc,
             courseid=self.classes[index].courseid,
             clazzid=self.classes[index].clazzid,
             cpi=self.classes[index].cpi,
-            puid=self.puid,
             chapter_lst=content_json['data'][0]['course']['data'][0]['knowledge']['data']
         )

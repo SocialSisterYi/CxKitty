@@ -10,6 +10,7 @@ from Crypto.Util.Padding import pad
 
 from .classes import Classes
 from .exceptions import APIError
+from .schema import AccountInfo
 
 API_LOGIN_WEB = 'https://passport2.chaoxing.com/fanyalogin'                      # 接口-web端登录
 API_QRCREATE = 'https://passport2.chaoxing.com/createqr'                         # 接口-激活二维码key并返回二维码图片
@@ -21,18 +22,15 @@ PAGE_LOGIN = 'https://passport2.chaoxing.com/login'                             
 UA_MOBILE = f'Dalvik/2.1.0 (Linux; U; Android {random.randint(9, 12)}; MI{random.randint(10, 12)} Build/SKQ1.210216.001) (device:MI{random.randint(10, 12)}) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_5.1.4_android_phone_614_74 (@Kalimdor)_{secrets.token_hex(16)}'
 UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35'
 
+
+
 class ChaoXingAPI:
     '学习通爬虫主类'
     session: requests.Session
+    acc: AccountInfo
     # 二维码登录用
     qr_uuid: str
     qr_enc: str
-    # 账号个人信息
-    puid: int  # 用户 puid
-    name: str  # 真实姓名
-    sex: str  # 性别
-    phone: str  # 手机号
-    school: tuple  # 单位
     
     def __init__(self) -> None:
         self.session = requests.Session()
@@ -115,11 +113,14 @@ class ChaoXingAPI:
         if json_content['result'] == 0:
             return False
         # 开始解析数据
-        self.puid = json_content['msg']['puid']
-        self.name = json_content['msg']['name']
-        self.phone = json_content['msg']['phone']
-        self.sex = [0, '男'][json_content['msg']['sex']]
-        self.school = json_content['msg']['schoolname'], json_content['msg']['uname']
+        self.acc = AccountInfo(
+            puid=json_content['msg']['puid'],
+            name=json_content['msg']['name'],
+            sex=['女', '男'][json_content['msg']['sex']],
+            phone=json_content['msg']['phone'],
+            school=json_content['msg']['schoolname'],
+            stu_id=json_content['msg']['uname']
+        )
         return True
     
     def fetch_classes(self) -> Classes:
@@ -131,7 +132,7 @@ class ChaoXingAPI:
             raise APIError
         return Classes(
             session=self.session,
-            puid=self.puid,
+            acc=self.acc,
             classes_lst=content_json['channelList']
         )
     

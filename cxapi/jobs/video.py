@@ -10,6 +10,7 @@ from rich.layout import Layout
 from rich.panel import Panel
 from rich.progress import Progress
 
+from ..schema import AccountInfo
 from ..utils import get_dc
 
 PAGE_MOBILE_CHAPTER_CARD = 'https://mooc1-api.chaoxing.com/knowledge/cards'      # SSR页面-客户端章节任务卡片
@@ -20,6 +21,7 @@ API_VIDEO_PLAYREPORT = 'https://mooc1-api.chaoxing.com/multimedia/log/a'        
 class ChapterVideo:
     '章节视频'
     session: requests.Session
+    acc: AccountInfo
     # 基本参数
     clazzid: int
     courseid: int
@@ -27,7 +29,6 @@ class ChapterVideo:
     card_index: int  # 卡片索引位置
     point_index: int  # 任务点索引位置
     cpi: int
-    puid: int
     # 视频参数
     objectid: str
     fid: int
@@ -37,15 +38,15 @@ class ChapterVideo:
     otherInfo: str
     title: str
     
-    def __init__(self, session: requests.Session, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int, puid: int, point_index: int) -> None:
+    def __init__(self, session: requests.Session, acc: AccountInfo, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int, point_index: int) -> None:
         self.session = session
+        self.acc = acc
         self.clazzid = clazzid
         self.courseid = courseid
         self.knowledgeid = knowledgeid
         self.card_index = card_index
         self.objectid = objectid
         self.cpi = cpi
-        self.puid = puid
         self.point_index = point_index
     
     def pre_fetch(self) -> bool:
@@ -103,9 +104,9 @@ class ChapterVideo:
                 'clipTime': f'0_{self.duration}',
                 'clazzId': self.clazzid,
                 'objectId': self.objectid,
-                'userid': self.puid,
+                'userid': self.acc.puid,
                 'isdrag': '0',
-                'enc': md5(f'[{self.clazzid}][{self.puid}][{self.jobid}][{self.objectid}][{playing_time * 1000}][d_yHJ!$pdA~5][{self.duration * 1000}][0_{self.duration}]'.encode()).hexdigest(),
+                'enc': md5(f'[{self.clazzid}][{self.acc.puid}][{self.jobid}][{self.objectid}][{playing_time * 1000}][d_yHJ!$pdA~5][{self.duration * 1000}][0_{self.duration}]'.encode()).hexdigest(),
                 'rt': '0.9',  # 'rt': '1.0',  ??
                 'dtype': 'Video',
                 'view': 'pc',

@@ -39,7 +39,6 @@
 
 - ⭕获取任务点状态会出现 `0/0`的情况 (即使任务点存在未做)
 - ⭕拉取试题有概率出现权限无效情况
-- ⭕有概率在0点后掉前一天的进度
 
 ## Typographical
 
@@ -122,17 +121,17 @@ searcher:
   restApiSearcher:
     url: "http://127.0.0.1:88/v1/cx"  # API url
     method: "POST"  # 请求方式
-    req: "question"  # 请求参数
-    rsp: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
+    req_field: "question"  # 请求参数
+    rsp_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
   # 本地 JSON 数据库搜索器 (key为题, value为答案)
   jsonFileSearcher:
-    path: "questions.json"  # 数据库文件路径
+    file_path: "questions.json"  # 数据库文件路径
   # 本地 sqlite 数据库搜索器
   sqliteSearcher:
-    parh: "questions.db"  # 数据库文件路径
+    file_path: "questions.db"  # 数据库文件路径
     table: "question"  # 表名
-    req: "question"  # 请求字段
-    rsp: "answer"  # 返回字段
+    req_field: "question"  # 请求字段
+    rsp_field: "answer"  # 返回字段
 ```
 
 ### 题库配置

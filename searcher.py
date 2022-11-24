@@ -2,10 +2,11 @@ import difflib
 import json
 import sqlite3
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Union
 
 import jsonpath
 import requests
+
 
 def suffix_filter(text: str) -> str:
     '过滤题目的各种符号后缀'
@@ -63,7 +64,7 @@ class RestAPISearcher(SearcherBase):
 class JsonFileSearcher(SearcherBase):
     db: dict[str, str]
     
-    def __init__(self, file_path: Path) -> None:
+    def __init__(self, file_path: Union[Path, str]) -> None:
         try:
             with open(file_path, 'r', encoding='utf8') as fp:
                 self.db = json.load(fp)
@@ -86,7 +87,7 @@ class SqliteSearcher(SearcherBase):
     table: str
     rsp_field: str
     
-    def __init__(self, file_path: Path, req_field: str, rsp_field: str, table: str='question') -> None:
+    def __init__(self, file_path: Union[Path, str], req_field: str, rsp_field: str, table: str='question') -> None:
         self.db = sqlite3.connect(file_path)
         self.table = table
         self.rsp_field = rsp_field

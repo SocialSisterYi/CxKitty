@@ -52,13 +52,13 @@ def save_session(session_path: Path, api: ChaoXingAPI, passwd: Optional[str]=Non
     '存档会话数据为json'
     if not session_path.is_dir():
         session_path.mkdir(parents=True)
-    file_path = session_path / f'{api.phone}.json'
+    file_path = session_path / f'{api.acc.phone}.json'
     with open(file_path, 'w', encoding='utf8') as fp:
         sessdata = {
-            'phone': api.phone,
-            'puid': api.puid,
+            'phone': api.acc.phone,
+            'puid': api.acc.puid,
             'passwd': passwd,
-            'name': api.name,
+            'name': api.acc.name,
             'ck': dict2ck(api.ck_dump())
         }
         json.dump(sessdata, fp, ensure_ascii=False)
@@ -84,7 +84,7 @@ def sessions_load(session_path: Path):
 
 def print_accinfo(tui_ctx: Console, api: ChaoXingAPI):
     '显示账号信息到终端'
-    tui_ctx.print(f"[green]账号已登录[/] puid={api.puid} name={api.name} schools={api.school}")
+    tui_ctx.print(f"[green]账号已登录[/] puid={api.acc.puid} name={api.acc.name} sex={api.acc.sex} schools={api.acc.school} stu_id={api.acc.stu_id}")
 
 def dialog_login(tui_ctx: Console, session_path: Path, api: ChaoXingAPI):
     '密码和二维码“登录”交互'

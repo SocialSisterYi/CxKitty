@@ -2,11 +2,8 @@ import difflib
 import json
 import re
 import time
-from dataclasses import dataclass
-from enum import Enum
 from typing import Any
 
-import jsonpath
 import lxml.html
 import requests
 from rich.json import JSON
@@ -16,28 +13,16 @@ from rich.table import Table
 
 from searcher import SearcherBase
 
+from ..schema import AccountInfo, QuestionEnum, QuestionModel
+
 API_EXAM_COMMIT = 'https://mooc1-api.chaoxing.com/work/addStudentWorkNew'        # 接口-单元测验答题提交
 PAGE_MOBILE_CHAPTER_CARD = 'https://mooc1-api.chaoxing.com/knowledge/cards'      # SSR页面-客户端章节任务卡片
 PAGE_MOBILE_EXAM = 'https://mooc1-api.chaoxing.com/android/mworkspecial'         # SSR页面-客户端单元测验答题页
 
-class QuestionEnum(Enum):
-    '题目类型枚举'
-    单选题 = 0
-    多选题 = 1
-    判断题 = 3
-
-@dataclass
-class QuestionModel:
-    '题目数据模型'
-    question_id: int
-    value: str
-    question_type: QuestionEnum
-    answers: dict[str, str]
-    option: str
-
 class ChapterExam:
     '章节测验'
     session: requests.Session
+    acc: AccountInfo
     # 基本参数
     card_index: int  # 卡片索引位置
     point_index: int  # 任务点索引位置
@@ -45,7 +30,6 @@ class ChapterExam:
     knowledgeid: int
     cpi: int
     clazzid: int
-    puid: int
     # 考试参数
     title: str
     workid: str
@@ -65,14 +49,14 @@ class ChapterExam:
     # 施法参数
     need_jobid: bool
     
-    def __init__(self, session: requests.Session, card_index: int, courseid: int, workid: str, jobid: str, knowledgeid: int, puid: int, clazzid: int, cpi: int, point_index: int) -> None:
+    def __init__(self, session: requests.Session, acc: AccountInfo, card_index: int, courseid: int, workid: str, jobid: str, knowledgeid: int, clazzid: int, cpi: int, point_index: int) -> None:
         self.session = session
+        self.acc = acc
         self.card_index = card_index
         self.courseid = courseid
         self.workid = workid
         self.jobid = jobid
         self.knowledgeid = knowledgeid
-        self.puid = puid
         self.clazzid = clazzid
         self.cpi = cpi
         self.point_index = point_index
@@ -114,7 +98,7 @@ class ChapterExam:
             'jobid': self.jobid if self.need_jobid else '',
             'needRedirect': 'true',
             'knowledgeid': self.knowledgeid,
-            'userid':self.puid,
+            'userid':self.acc.puid,
             'ut': 's',
             'clazzId': self.clazzid,
             'cpi': self.cpi,
@@ -264,7 +248,7 @@ class ChapterExam:
                 '\n'.join(f'q：{q}\na：{a}' for q, a in mistake_questions.items()),
                 title='有错误的题', highlight=False, style='red'
             ))
-            # TODO:提交保存试题
+            # TODO:提交保存试题并记录到log文件
         time.sleep(5.0)
     
     def __mk_answer_reqdata(self) -> dict[str, str]:
@@ -309,7 +293,7 @@ class ChapterExam:
                 'workRelationId': self.workRelationId,
                 'enc_work': self.enc_work,
                 'isphone': 'true',
-                'userId': self.puid,
+                'userId': self.acc.puid,
                 'workTimesEnc': '',
                 **answer_data
             }

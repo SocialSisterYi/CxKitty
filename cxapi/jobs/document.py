@@ -7,6 +7,7 @@ from rich.json import JSON
 from rich.layout import Layout
 from rich.panel import Panel
 
+from ..schema import AccountInfo
 from ..utils import get_dc
 
 PAGE_MOBILE_CHAPTER_CARD = 'https://mooc1-api.chaoxing.com/knowledge/cards'      # SSR页面-客户端章节任务卡片
@@ -15,6 +16,7 @@ API_DOCUMENT_READINGREPORT = 'https://mooc1.chaoxing.com/ananas/job/document'   
 class ChapterDocument:
     '章节文档'
     session: requests.Session
+    acc: AccountInfo
     # 基本参数
     clazzid: int
     courseid: int
@@ -22,22 +24,21 @@ class ChapterDocument:
     card_index: int  # 卡片索引位置
     point_index: int  # 任务点索引位置
     cpi: int
-    puid: int
     # 文档参数
     objectid: str
     jobid: str
     title: str
     jtoken: str
     
-    def __init__(self, session: requests.Session, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int, puid: int, point_index: int) -> None:
+    def __init__(self, session: requests.Session, acc: AccountInfo, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int, point_index: int) -> None:
         self.session = session
+        self.acc = acc
         self.clazzid = clazzid
         self.courseid = courseid
         self.knowledgeid = knowledgeid
         self.card_index = card_index
         self.objectid = objectid
         self.cpi = cpi
-        self.puid = puid
         self.point_index = point_index
     
     def pre_fetch(self) -> bool:

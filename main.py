@@ -34,23 +34,11 @@ console = Console(height=CONFIG['tUIMaxHeight'])
 if CONFIG['exam']['enable']:
     match CONFIG['searcher']['use']:
         case 'restApiSearcher':
-            searcher = RestAPISearcher(
-                url=CONFIG['searcher']['restApiSearcher']['url'],
-                method=CONFIG['searcher']['restApiSearcher']['method'],
-                req_field=CONFIG['searcher']['restApiSearcher']['req'],
-                rsp_field=CONFIG['searcher']['restApiSearcher']['rsp']
-            )
+            searcher = RestAPISearcher(**CONFIG['searcher']['restApiSearcher'])
         case 'jsonFileSearcher':
-            searcher = JsonFileSearcher(
-                file_path=Path(CONFIG['searcher']['jsonFileSearcher']['path'])
-            )
+            searcher = JsonFileSearcher(**CONFIG['searcher']['jsonFileSearcher'])
         case 'sqliteSearcher':
-            searcher = SqliteSearcher(
-                file_path=Path(CONFIG['searcher']['sqliteSearcher']['path']),
-                table=CONFIG['searcher']['sqliteSearcher']['table'],
-                req_field=CONFIG['searcher']['sqliteSearcher']['req'],
-                rsp_field=CONFIG['searcher']['sqliteSearcher']['rsp']
-            )
+            searcher = SqliteSearcher(**CONFIG['searcher']['sqliteSearcher'])
         case _:
             raise TypeError('不合法的搜索器类型')
 
@@ -122,7 +110,7 @@ def dialog_class(cx: ChaoXingAPI):
     classes = cx.fetch_classes()
     while True:
         classes.print_tb(console)
-        inp = console.input('输入课程序号, 退出输入q：')
+        inp = console.input('请输入欲完成的课程序号, 输入q退出：')
         if inp == 'q':
             sys.exit()
         elif inp.isdigit():

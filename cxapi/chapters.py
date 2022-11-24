@@ -1,6 +1,5 @@
 import json
 import time
-from dataclasses import dataclass
 from typing import TypeVar
 
 import lxml.html
@@ -12,6 +11,7 @@ from .exceptions import APIError
 from .jobs.document import ChapterDocument
 from .jobs.exam import ChapterExam
 from .jobs.video import ChapterVideo
+from .schema import AccountInfo, ChapterModel
 from .utils import calc_infenc
 
 TaskPointType = TypeVar('TaskPointType', ChapterExam, ChapterVideo, ChapterDocument)
@@ -19,19 +19,6 @@ TaskPointType = TypeVar('TaskPointType', ChapterExam, ChapterVideo, ChapterDocum
 API_CHAPTER_POINT = 'https://mooc1-api.chaoxing.com/job/myjobsnodesmap'          # 接口-课程章节任务点状态
 API_CHAPTER_CARDS = 'https://mooc1-api.chaoxing.com/gas/knowledge'               # 接口-课程章节卡片
 
-
-@dataclass
-class ChapterModel:
-    '章节数据模型'
-    chapter_id: int
-    jobs: int
-    index: int
-    name: str
-    label: str
-    layer: int
-    status: str
-    point_total: int
-    point_finish: int
 
 class ClassChapters:
     '课程章节'
@@ -41,14 +28,14 @@ class ClassChapters:
     courseid: int  # 课程 id
     clazzid: int  # 班级 id
     cpi: int
-    puid: int  # 用户 puid
+    acc: AccountInfo
     
-    def __init__(self, session: requests.Session, courseid: int, clazzid: int, cpi: int, puid: int, chapter_lst: list[dict]) -> None:
+    def __init__(self, session: requests.Session, acc: AccountInfo, courseid: int, clazzid: int, cpi: int, chapter_lst: list[dict]) -> None:
         self.session = session
         self.courseid = courseid
         self.clazzid = clazzid
         self.cpi = cpi
-        self.puid = puid
+        self.acc = acc
         
         self.chapters = []
         for c in chapter_lst:
@@ -103,7 +90,7 @@ class ClassChapters:
             'nodes': ','.join(str(c.chapter_id) for c in self.chapters),
             'clazzid': self.clazzid,
             'time': int(time.time()*1000),
-            'userid': self.puid,
+            'userid': self.acc.puid,
             'cpi': self.cpi,
             'courseid': self.courseid
         })
@@ -149,12 +136,12 @@ class ClassChapters:
                         # 视频任务点
                         point_objs.append(ChapterVideo(
                             session=self.session,
+                            acc=self.acc,
                             card_index=card_index,
                             point_index=point_index,
                             courseid=self.courseid,
                             knowledgeid=self.chapters[num].chapter_id,
                             objectid=json_data['objectid'],
-                            puid=self.puid,
                             clazzid=self.clazzid,
                             cpi=self.cpi
                         ))
@@ -162,13 +149,13 @@ class ClassChapters:
                         # 测验任务点
                         point_objs.append(ChapterExam(
                             session=self.session,
+                            acc=self.acc,
                             card_index=card_index,
                             point_index=point_index,
                             courseid=self.courseid,
                             workid=json_data['workid'],
                             jobid=json_data['_jobid'],
                             knowledgeid=self.chapters[num].chapter_id,
-                            puid=self.puid,
                             clazzid=self.clazzid,
                             cpi=self.cpi
                         ))
@@ -176,11 +163,11 @@ class ClassChapters:
                         # 文档查看任务点
                         point_objs.append(ChapterDocument(
                             session=self.session,
+                            acc=self.acc,
                             card_index=card_index,
                             point_index=point_index,
                             courseid=self.courseid,
                             knowledgeid=self.chapters[num].chapter_id,
-                            puid=self.puid,
                             clazzid=self.clazzid,
                             cpi=self.cpi,
                             objectid=json_data['objectid']
