@@ -84,7 +84,7 @@ def sessions_load(session_path: Path):
 
 def print_accinfo(tui_ctx: Console, api: ChaoXingAPI):
     '显示账号信息到终端'
-    tui_ctx.print(f"[green]账号已登录[/] puid={api.puid} name={api.name} schools={api.schools}")
+    tui_ctx.print(f"[green]账号已登录[/] puid={api.puid} name={api.name} schools={api.school}")
 
 def dialog_login(tui_ctx: Console, session_path: Path, api: ChaoXingAPI):
     '密码和二维码“登录”交互'

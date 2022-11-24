@@ -111,7 +111,8 @@ def fuck_video_and_exam_mainloop(chap: ClassChapters):
                 
                 # 析构任务点对象
                 del task_point
-            chap.fetch_point_status()  # 刷新章节任务点状态
+                chap.fetch_point_status()  # 刷新章节任务点状态
+                chap.render_lst2tui(lay_chapter, index)
         lay_main.unsplit()
         lay_main.update(Panel('[green]该课程已通过', border_style='green'))
         time.sleep(5.0)
@@ -143,7 +144,7 @@ def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
                 console.print(acc)
                 api.accinfo()
                 save_session(SESSION_PATH, api, passwd)
-                return
+                return True
             else:
                 console.print('[red]登录失败, 清手动登录')
         else:
@@ -169,14 +170,18 @@ def dialog_select_session(sessions: list[SessionModule], api: ChaoXingAPI):
         elif r := re.match(r'^(\d+)(r?)', inp):
             index = int(r.group(1))
             if r.group(2) == 'r':
-                relogin(index)
+                starts = relogin(index)
+                if starts:
+                    return
             else:
                 ck = ck2dict(sessions[index].ck)
                 api.ck_load(ck)
                 # 自动重登逻辑
                 if not api.accinfo():
                     console.print('[red]会话失效, 尝试重新登录')
-                    relogin(index)
+                    starts = relogin(index)
+                    if not starts:
+                        continue
                 return
             
 

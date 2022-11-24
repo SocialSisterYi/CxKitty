@@ -1,5 +1,6 @@
 import base64
-import re
+import random
+import secrets
 
 import lxml.html
 import requests
@@ -14,10 +15,10 @@ API_LOGIN_WEB = 'https://passport2.chaoxing.com/fanyalogin'                     
 API_QRCREATE = 'https://passport2.chaoxing.com/createqr'                         # 接口-激活二维码key并返回二维码图片
 API_QRLOGIN = 'https://passport2.chaoxing.com/getauthstatus'                     # 接口-web端二维码登录
 API_CLASS_LST = 'https://mooc1-api.chaoxing.com/mycourse/backclazzdata'          # 接口-课程列表
-PAGE_ACCINFO = 'https://passport2.chaoxing.com/mooc/accountManage'               # SSR页面-登录信息
+API_SSO_LOGIN = 'https://sso.chaoxing.com/apis/login/userLogin4Uname.do'         # 接口-SSO二步登录
 PAGE_LOGIN = 'https://passport2.chaoxing.com/login'                              # SSR页面-登录 用于提取二维码key
 
-UA_MOBILE = 'Dalvik/2.1.0 (Linux; U; Android 12; M2102K1C Build/SKQ1.211006.001) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.0.5_android_phone_899_99'
+UA_MOBILE = f'Dalvik/2.1.0 (Linux; U; Android {random.randint(9, 12)}; MI{random.randint(10, 12)} Build/SKQ1.210216.001) (device:MI{random.randint(10, 12)}) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_5.1.4_android_phone_614_74 (@Kalimdor)_{secrets.token_hex(16)}'
 UA_WEB = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.35'
 
 class ChaoXingAPI:
@@ -31,13 +32,15 @@ class ChaoXingAPI:
     name: str  # 真实姓名
     sex: str  # 性别
     phone: str  # 手机号
-    schools: list  # 单位列表
+    school: tuple  # 单位
     
     def __init__(self) -> None:
         self.session = requests.Session()
         # 默认使用 APP 的 UA, 因为一些接口为 APP 独占
-        self.session.headers['User-Agent'] = UA_MOBILE
-        self.schools = []
+        self.session.headers.update({
+            'User-Agent': UA_MOBILE,
+            'X-Requested-With': 'com.chaoxing.mobile'
+        })
 
     def ck_load(self, ck: dict[str, str]) -> None:
         '加载dict格式的ck'
@@ -106,24 +109,18 @@ class ChaoXingAPI:
     
     def accinfo(self) -> bool:
         '获取登录用户信息 同时判断ck有效'
-        resp = self.session.get(PAGE_ACCINFO)
+        resp = self.session.get(API_SSO_LOGIN)
         resp.raise_for_status()
-        root = lxml.html.fromstring(resp.content)
+        json_content = resp.json()
+        if json_content['result'] == 0:
+            return False
         # 开始解析数据
-        if x:= root.xpath("//p[@id='uid']/text()"):  # 获取 puid 同时判定 session 的有效性
-            self.puid = int(x[0])
-            self.name = root.xpath("//p[@id='messageName']/text() | //span[@id='messageName']/text()")[0]  # 获取姓名
-            self.sex = root.xpath("//p[contains(@class,'sex')]/span/text()")[0].strip()  # 获取性别
-            self.phone = root.xpath("//span[@id='messagePhone']/text()")[0]  # 获取手机号
-            for sch in root.xpath("//ul[@class='listCon']/li"):  # 获取单位列表
-                school_name = sch.xpath("text()")[0].strip()
-                if (r := re.search(r'(\d+)', sch.xpath("p[@class='xuehao']/text()")[0])) is not None:
-                    student_id = int(r.group(1))
-                else:
-                    student_id = None
-                self.schools.append((school_name, student_id))
-            return True
-        return False
+        self.puid = json_content['msg']['puid']
+        self.name = json_content['msg']['name']
+        self.phone = json_content['msg']['phone']
+        self.sex = [0, '男'][json_content['msg']['sex']]
+        self.school = json_content['msg']['schoolname'], json_content['msg']['uname']
+        return True
     
     def fetch_classes(self) -> Classes:
         '拉取课程'

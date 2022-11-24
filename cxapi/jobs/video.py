@@ -92,10 +92,6 @@ class ChapterVideo:
     
     def __play_report(self, playing_time: int) -> dict:
         '播放上报'
-        def _mk_sign():
-            '生成上报hash签名'
-            return md5(f'[{self.clazzid}][{self.puid}][{self.jobid}][{self.objectid}][{playing_time * 1000}][d_yHJ!$pdA~5][{self.duration * 1000}][0_{self.duration}]'.encode()).hexdigest()
-        
         resp = self.session.get(
             f'{API_VIDEO_PLAYREPORT}/{self.cpi}/{self.dtoken}',
             params=urllib.parse.urlencode({
@@ -109,7 +105,7 @@ class ChapterVideo:
                 'objectId': self.objectid,
                 'userid': self.puid,
                 'isdrag': '0',
-                'enc': _mk_sign(),
+                'enc': md5(f'[{self.clazzid}][{self.puid}][{self.jobid}][{self.objectid}][{playing_time * 1000}][d_yHJ!$pdA~5][{self.duration * 1000}][0_{self.duration}]'.encode()).hexdigest(),
                 'rt': '0.9',  # 'rt': '1.0',  ??
                 'dtype': 'Video',
                 'view': 'pc',
