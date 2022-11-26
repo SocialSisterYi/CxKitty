@@ -8,7 +8,7 @@ from rich.layout import Layout
 from rich.panel import Panel
 
 from ..schema import AccountInfo
-from ..utils import get_dc
+from .. import get_dc
 
 PAGE_MOBILE_CHAPTER_CARD = 'https://mooc1-api.chaoxing.com/knowledge/cards'      # SSR页面-客户端章节任务卡片
 API_DOCUMENT_READINGREPORT = 'https://mooc1.chaoxing.com/ananas/job/document'    # 接口-课程文档阅读上报

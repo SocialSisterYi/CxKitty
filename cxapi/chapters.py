@@ -7,12 +7,12 @@ import requests
 from rich.layout import Layout
 from rich.panel import Panel
 
-from .exceptions import APIError
+from . import APIError, calc_infenc
 from .jobs.document import ChapterDocument
 from .jobs.exam import ChapterExam
 from .jobs.video import ChapterVideo
 from .schema import AccountInfo, ChapterModel
-from .utils import calc_infenc
+from wcwidth import wcswidth
 
 TaskPointType = TypeVar('TaskPointType', ChapterExam, ChapterVideo, ChapterDocument)
 
@@ -78,8 +78,9 @@ class ClassChapters:
             lines.append(
                 ('[bold red]❱[/]' if ptr == index else ' ') + 
                 f'[bold green]{chapter.label}[/]:' +
-                '[' + ('bold ' if ptr == index else '')  + ('green' if is_finished else 'white') + ']' + chapter.name + '[/]' +
-                f'\t...任务点{chapter.point_finish}/{chapter.point_total}'
+                '[' + ('bold ' if ptr == index else '')  + ('green' if is_finished else 'white') + ']' + 
+                (chapter.name[:27] + '...' if wcswidth(chapter.name) > 30 else chapter.name) + '[/]' +
+                f'    ...任务点{chapter.point_finish}/{chapter.point_total}'
             )
         tui_ctx.update(Panel('\n'.join(lines), title='课程列表', border_style='blue'))
     

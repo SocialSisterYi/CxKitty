@@ -138,9 +138,9 @@ searcher:
 
 单选题问题与答案应当一一对应，多选题使用`#`或`;`分隔每个选项，判断题答案只能为`对`、`错`、`正确`、`错误`、`√`、`×`
 
-REST API 搜题接口配置，确保接口`searcher->restApiSearcher->url`可以正确访问访问（如使用 Docker 搭建，宿主主机运行服务，则应使用宿主机虚拟网关 IP 地址而不是回环地址）
+REST API 搜题接口配置，确保接口`searcher->restApiSearcher->url`可以正确访问访问（若使用 Docker 搭建，而题库 API 服务在宿主机运行，应使用宿主机虚拟网关 IP 地址而不是本地回环地址）
 
-返回值必须为 Json 格式，使用`rsp`字段作为选择器传入，使用 [JsonPath](https://goessner.net/articles/JsonPath/) 语法编写，如`$.data`或`$.data.answer[*]`等
+返回值必须为 JSON 格式，使用`rsp_field`字段作为选择器传入，使用 [JsonPath](https://goessner.net/articles/JsonPath/) 语法编写，如`$.data`或`$.data.answer[*]`等
 
 eg：
 
@@ -158,7 +158,7 @@ curl 'http://127.0.0.1:88/v1/cx' \
 }
 ```
 
-JSON 题库，确保`searcher->jsonFileSearcher->file`可以访问（使用 Docker 需要设置映射），key 为题目，value 为与之对应的答案
+JSON 题库，确保`searcher->jsonFileSearcher->file_path`可以访问（使用 Docker 需要设置映射），key 为题目，value 为与之对应的答案
 
 eg：
 
@@ -168,7 +168,7 @@ eg：
 }
 ```
 
-SQLite 题库，确保`searcher->sqliteSearcher->file`可以访问（使用 Docker 需要设置映射），表中应存在配置的请求和响应字段
+SQLite 题库，确保`searcher->sqliteSearcher->file_path`可以访问（使用 Docker 需要设置映射），表中应存在配置的请求和响应字段
 
 eg：
 

@@ -1,9 +1,8 @@
 
 import requests
-from rich.table import Table
 
+from . import APIError
 from .chapters import ClassChapters
-from .exceptions import APIError
 from .schema import AccountInfo, ClassModule
 
 API_CHAPTER_LST = 'https://mooc1-api.chaoxing.com/gas/clazz'                     # 接口-课程章节列表
@@ -33,16 +32,6 @@ class Classes:
                 name         = c['content']['course']['data'][0]['name'],
                 teacher_name = c['content']['course']['data'][0]['teacherfactor']
             ))
-    
-    def print_tb(self, tui_ctx) -> None:
-        '输出课程列表表格'
-        tb = Table('序号', '课程名', '老师名', '课程id', '课程状态', title='所学的课程', border_style='blue')
-        for num, cla in enumerate(self.classes):
-            tb.add_row(
-                f'[green]{num}', cla.name, cla.teacher_name, str(cla.courseid),
-                '[red]已结课' if cla.state else '[green]进行中'
-            )
-        tui_ctx.print(tb)
     
     def fetch_chapters_by_index(self, index: int) -> ClassChapters:
         '拉取课程对应“章节”列表'

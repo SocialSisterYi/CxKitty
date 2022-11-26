@@ -10,8 +10,8 @@ from rich.layout import Layout
 from rich.panel import Panel
 from rich.progress import Progress
 
+from .. import get_dc
 from ..schema import AccountInfo
-from ..utils import get_dc
 
 PAGE_MOBILE_CHAPTER_CARD = 'https://mooc1-api.chaoxing.com/knowledge/cards'      # SSR页面-客户端章节任务卡片
 API_CHAPTER_CARD_RESOURCE = 'https://mooc1-api.chaoxing.com/ananas/status'       # 接口-课程章节卡片资源
