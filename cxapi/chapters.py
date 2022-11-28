@@ -6,13 +6,13 @@ import lxml.html
 import requests
 from rich.layout import Layout
 from rich.panel import Panel
+from wcwidth import wcswidth
 
 from . import APIError, calc_infenc
 from .jobs.document import ChapterDocument
 from .jobs.exam import ChapterExam
 from .jobs.video import ChapterVideo
 from .schema import AccountInfo, ChapterModel
-from wcwidth import wcswidth
 
 TaskPointType = TypeVar('TaskPointType', ChapterExam, ChapterVideo, ChapterDocument)
 
@@ -23,25 +23,22 @@ API_CHAPTER_CARDS = 'https://mooc1-api.chaoxing.com/gas/knowledge'              
 class ClassChapters:
     '课程章节'
     session: requests.Session
+    acc: AccountInfo
     chapters: list[ChapterModel]
     # 课程参数
     courseid: int  # 课程 id
     clazzid: int  # 班级 id
     cpi: int
-    acc: AccountInfo
     
     def __init__(self, session: requests.Session, acc: AccountInfo, courseid: int, clazzid: int, cpi: int, chapter_lst: list[dict]) -> None:
         self.session = session
+        self.acc = acc
         self.courseid = courseid
         self.clazzid = clazzid
         self.cpi = cpi
-        self.acc = acc
         
-        self.chapters = []
-        for c in chapter_lst:
-            if c['layer'] != 2:
-                continue
-            self.chapters.append(ChapterModel(
+        self.chapters = [
+            ChapterModel(
                 chapter_id=c['id'],
                 jobs=c['jobcount'],
                 index=c['indexorder'],
@@ -50,7 +47,9 @@ class ClassChapters:
                 layer=c['layer'],
                 status=c['status'],
                 point_total=0, point_finish=0
-            ))
+            ) for c
+            in chapter_lst
+        ]
         self.chapters.sort(key=lambda x: tuple(int(v) for v in x.label.split('.')))
     
     def is_finished(self, index: int) -> bool:
@@ -77,9 +76,10 @@ class ClassChapters:
             is_finished = self.is_finished(ptr)
             lines.append(
                 ('[bold red]❱[/]' if ptr == index else ' ') + 
+                ('  ' * (chapter.layer - 1)) +
                 f'[bold green]{chapter.label}[/]:' +
-                '[' + ('bold ' if ptr == index else '')  + ('green' if is_finished else 'white') + ']' + 
-                (chapter.name[:27] + '...' if wcswidth(chapter.name) > 30 else chapter.name) + '[/]' +
+                '[' + ('bold ' if ptr == index else '')  + ('green' if is_finished else 'white') + ']' +
+                (chapter.name[:22] + '...' if wcswidth(chapter.name) > 25 else chapter.name) + '[/]' +
                 f'    ...任务点{chapter.point_finish}/{chapter.point_total}'
             )
         tui_ctx.update(Panel('\n'.join(lines), title='课程列表', border_style='blue'))

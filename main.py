@@ -125,7 +125,7 @@ if __name__ == '__main__':
         console.print('[red]JSON 解析失败, 可能为账号 ck 失效, 请重新登录该账号 (序号+r)')
     except Exception as err:
         console.print_exception(show_locals=False)
-        console.print('[bold red]程序运行出现错误, 请截图保存并在issiue中提交')
+        console.print('[bold red]程序运行出现错误, 请截图保存并在 issue 中提交')
     except KeyboardInterrupt:
         console.print('[yellow]手动中断程序运行')
     else:
