@@ -1,10 +1,12 @@
 import base64
 
-import lxml.html
 import requests
 import requests.utils
+from bs4 import BeautifulSoup
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
+
+from logger import Logger
 
 from . import APIError, get_ua
 from .classes import Classes
@@ -20,6 +22,7 @@ PAGE_LOGIN = 'https://passport2.chaoxing.com/login'                             
 
 class ChaoXingAPI:
     '学习通爬虫主类'
+    logger: Logger
     session: requests.Session
     acc: AccountInfo
     # 二维码登录用
@@ -27,6 +30,7 @@ class ChaoXingAPI:
     qr_enc: str
     
     def __init__(self) -> None:
+        self.logger = Logger('MainAPI')
         self.session = requests.Session()
         # 默认使用 APP 的 UA, 因为一些接口为 APP 独占
         self.session.headers.update({
@@ -42,28 +46,31 @@ class ChaoXingAPI:
         '输出ck为dict'
         return requests.utils.dict_from_cookiejar(self.session.cookies)
         
-    def login_passwd(self, unmae: str, passwd: str) -> tuple[bool, dict]:
+    def login_passwd(self, uname: str, passwd: str) -> tuple[bool, dict]:
         '以web方式使用手机号+密码账号'
+        self.logger.set_loginfo(uname)
         key = b'u2oh6Vu^HWe4_AES'
         # 开始加密参数
         cryptor = AES.new(key, AES.MODE_CBC, key)
-        unmae = base64.b64encode(cryptor.encrypt(pad(unmae.encode(), 16))).decode()
+        uname = base64.b64encode(cryptor.encrypt(pad(uname.encode(), 16))).decode()
         cryptor = AES.new(key, AES.MODE_CBC, key)
         passwd = base64.b64encode(cryptor.encrypt(pad(passwd.encode(), 16))).decode()
         
         resp = self.session.post(API_LOGIN_WEB, data={
             'fid': -1,
-            'uname': unmae,
+            'uname': uname,
             'password': passwd,
             't': 'true',
             'forbidotherlogin': 0,
             'validate': '',
         })
         resp.raise_for_status()
-        content_json = resp.json()
-        if content_json['status'] != True:
-            return False, content_json
-        return True, content_json
+        json_content = resp.json()
+        if json_content['status'] != True:
+            self.logger.warning(f'密码登录失败 {json_content}')
+            return False, json_content
+        self.logger.debug('密码登录成功')
+        return True, json_content
     
     def qr_get(self) -> None:
         '获取二维码登录key'
@@ -72,9 +79,9 @@ class ChaoXingAPI:
             headers={'User-Agent': get_ua('web')}  # 这里不可以用移动端 UA 否则鉴权失败
         )
         resp.raise_for_status()
-        root = lxml.html.fromstring(resp.content)
-        self.qr_uuid = root.xpath("//div//input[@id='uuid']/@value")[0]
-        self.qr_enc = root.xpath("//input[@id='enc']/@value")[0]
+        html = BeautifulSoup(resp.text, 'lxml')
+        self.qr_uuid = html.find('input', id='uuid')['value']
+        self.qr_enc = html.find('input', id='enc')['value']
         
         # 激活qr但忽略返回的图片bin
         resp = self.session.get(API_QRCREATE, params={
@@ -113,6 +120,8 @@ class ChaoXingAPI:
             school=json_content['msg']['schoolname'],
             stu_id=json_content['msg']['uname']
         )
+        self.logger.set_loginfo(self.acc.phone)
+        self.logger.info(f"账号会话验证成功 {' '.join(f'{k}={v}' for k, v in self.acc.__dict__.items())}")
         return True
     
     def fetch_classes(self) -> Classes:
@@ -121,7 +130,9 @@ class ChaoXingAPI:
         resp.raise_for_status()
         content_json = resp.json()
         if content_json['result'] != 1:
+            self.logger.error(f"课程列表拉取失败")
             raise APIError
+        self.logger.info(f"课程列表拉取成功 共 {len(content_json['channelList'])} 个")
         return Classes(
             session=self.session,
             acc=self.acc,

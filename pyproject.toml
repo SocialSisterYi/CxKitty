@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "CxKitty"
-version = "0.1.1"
+version = "0.2.0"
 description = "超星学习通答题姬"
 authors = ["SocialSisterYi"]
 license = "GPL-3.0"
@@ -23,6 +23,7 @@ lxml = "^4.9.1"
 pyyaml = "^6.0"
 jsonpath-python = "^1.0.6"
 wcwidth = "^0.2.5"
+beautifulsoup4 = "^4.11.1"
 
 
 [build-system]

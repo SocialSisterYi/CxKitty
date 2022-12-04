@@ -1,6 +1,8 @@
 
 import requests
 
+from logger import Logger
+
 from . import APIError
 from .chapters import ClassChapters
 from .schema import AccountInfo, ClassModule
@@ -9,13 +11,16 @@ API_CHAPTER_LST = 'https://mooc1-api.chaoxing.com/gas/clazz'                    
 
 
 class Classes:
+    logger: Logger
     session: requests.Session
-    classes: list[ClassModule]
     acc: AccountInfo
+    classes: list[ClassModule]
     
     def __init__(self, session: requests.Session, acc: AccountInfo, classes_lst: list[dict]) -> None:
         self.session = session
         self.acc = acc
+        self.logger = Logger('Classes')
+        self.logger.set_loginfo(self.acc.phone)
         self.classes = []
         for c in classes_lst:
             # 未知 bug
@@ -44,7 +49,16 @@ class Classes:
         resp.raise_for_status()
         content_json = resp.json()
         if len(content_json['data']) == 0:
+            self.logger.info(
+                f"获取课程 [{self.classes[index].name}(Cou.{self.classes[index].courseid}/Cla.{self.classes[index].clazzid})] "
+                f"章节列表失败"
+            )
             raise APIError
+        class_cnt = len(content_json['data'][0]['course']['data'][0]['knowledge']['data'])
+        self.logger.info(
+            f'获取课程 章节列表成功 共 {class_cnt} 个 '
+            f'[{self.classes[index].name}(Cou.{self.classes[index].courseid}/Cla.{self.classes[index].clazzid})]'
+        )
         return ClassChapters(
             session=self.session,
             acc=self.acc,

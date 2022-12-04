@@ -56,6 +56,10 @@ def fuck_task_worker(chap: ClassChapters):
         for index in range(len(chap.chapters)):
             chap.render_lst2tui(lay_chapter, index)
             if chap.is_finished(index):  # 如果该章节所有任务点做完, 那么就跳过
+                chap.logger.info(
+                    f'忽略完成任务点 '
+                    f'[{chap.chapters[index].label}:{chap.chapters[index].name}(Id.{chap.chapters[index].chapter_id})]'
+                )
                 time.sleep(0.1)  # 解决强迫症, 故意添加延时, 为展示滚屏效果
                 continue
             for task_point in chap.fetch_points_by_index(index):  # 获取当前章节的所有任务点, 并遍历
@@ -115,6 +119,7 @@ if __name__ == '__main__':
     else:
         console.print('[yellow]会话存档为空, 请登录账号')
         dialog.login(console, api)
+    api.logger.info('-----*任务开始执行*-----')
     dialog.accinfo(console, api)
     try:
         classes = api.fetch_classes()  # 拉取该账号下所学的课程
@@ -127,6 +132,8 @@ if __name__ == '__main__':
         console.print_exception(show_locals=False)
         console.print('[bold red]程序运行出现错误, 请截图保存并在 issue 中提交')
     except KeyboardInterrupt:
+        api.logger.warning('-----*手动中断程序*-----')
         console.print('[yellow]手动中断程序运行')
     else:
+        api.logger.info('-----*任务执行完毕, 程序退出*-----')
         console.print('[green]任务已完成, 程序退出')

@@ -4,11 +4,13 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
+from cxapi.schema import AccountInfo
 
-from cxapi.api import ChaoXingAPI
+__version__ = '0.2.0'
 
 CONF: dict = yaml.load(open('config.yml', 'r', encoding='utf8') , yaml.FullLoader)
-CONF_SESSPATH: Path = Path(CONF['sessionPath'])  # 会话存档路径
+CONF_SESSPATH = Path(CONF['sessionPath'])  # 会话存档路径
+CONF_LOGPATH = Path(CONF['logPath'])  # 日志文件路径
 CONF_MULTI_SESS: bool = CONF['multiSession']
 CONF_TUI_MAX_HEIGHT: int = CONF['tUIMaxHeight']
 CONF_MASKACC: bool = CONF['maskAcc']
@@ -48,18 +50,18 @@ def ck2dict(ck: str) -> dict[str, str]:
         result[k] = v
     return result
 
-def save_session(api: ChaoXingAPI, passwd: Optional[str]=None) -> None:
+def save_session(ck: dict, acc: AccountInfo, passwd: Optional[str]=None) -> None:
     '存档会话数据为json'
     if not CONF_SESSPATH.is_dir():
         CONF_SESSPATH.mkdir(parents=True)
-    file_path = CONF_SESSPATH / f'{api.acc.phone}.json'
+    file_path = CONF_SESSPATH / f'{acc.phone}.json'
     with open(file_path, 'w', encoding='utf8') as fp:
         sessdata = {
-            'phone': api.acc.phone,
-            'puid': api.acc.puid,
+            'phone': acc.phone,
+            'puid': acc.puid,
             'passwd': passwd,
-            'name': api.acc.name,
-            'ck': dict2ck(api.ck_dump())
+            'name': acc.name,
+            'ck': dict2ck(ck)
         }
         json.dump(sessdata, fp, ensure_ascii=False)
 

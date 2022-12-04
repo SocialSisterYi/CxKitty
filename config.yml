@@ -1,7 +1,8 @@
 multiSession: true  # 是否开启多会话模式
-sessionPath: "session/"  # 会话存档路径
 maskAcc: true  # 是否开启姓名手机号打码
 tUIMaxHeight: 20  # TUI 最大显示高度
+sessionPath: "session/"  # 会话存档路径
+logPath: "logs/"  # 日志文件路径
 
 # 视频
 video:

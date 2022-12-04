@@ -9,26 +9,32 @@ from rich.table import Table
 
 from cxapi.api import ChaoXingAPI
 from cxapi.classes import Classes
-from utils import (CONF_MASKACC, SessionModule, ck2dict, mask_name, mask_phone,
-                   save_session)
+from utils import (CONF_MASKACC, SessionModule, __version__, ck2dict,
+                   mask_name, mask_phone, save_session)
 
 
 def logo(tui_ctx: Console) -> None:
     '显示项目logo'
-    tui_ctx.print("""\
-[red]   ______[/][green]     __ __ _ __  __[/]
-[red]  / ____/  __[/][green]/ //_/(_) /_/ /___  __[/]
-[red] / /   | |/_[/][green]/ ,<  / / __/ __/ / / /[/]
-[red]/ /____>  <[/][green]/ /| |/ / /_/ /_/ /_/ /[/]
-[red]\\____/_/|_[/][green]/_/ |_/_/\\__/\\__/\\__, /[/]
-                          [green]/____/[/]
-[bold red]超星[/][red]学习通[/][green]答题姬[/]
+    tui_ctx.print(f"""\
+[red]   █████████             [/][green] █████   ████  ███   █████     █████[/]
+[red]  ███░░░░░███            [/][green]░░███   ███░  ░░░   ░░███     ░░███[/]
+[red] ███     ░░░  █████ █████[/][green] ░███  ███    ████  ███████   ███████   █████ ████[/]
+[red]░███         ░░███ ░░███ [/][green] ░███████    ░░███ ░░░███░   ░░░███░   ░░███ ░███[/]
+[red]░███          ░░░█████░  [/][green] ░███░░███    ░███   ░███      ░███     ░███ ░███[/]
+[red]░░███     ███  ███░░░███ [/][green] ░███ ░░███   ░███   ░███ ███  ░███ ███ ░███ ░███[/]
+[red] ░░█████████  █████ █████[/][green] █████ ░░████ █████  ░░█████   ░░█████  ░░███████[/]
+[red]  ░░░░░░░░░  ░░░░░ ░░░░░ [/][green]░░░░░   ░░░░ ░░░░░    ░░░░░     ░░░░░    ░░░░░███[/]
+[red]                         [/][green]                                         ███ ░███[/]
+[red]                         [/][green]                                        ░░██████[/]
+[red]                         [/][green]                                         ░░░░░░[/]
+[bold red]超星[/][red]学习通[/][green]答题姬 Ver{__version__}[/]
+[green]SocialSisterYi[/]
 ─────────────────────────────────────""",
     highlight=False)
 
 def accinfo(tui_ctx: Console, api: ChaoXingAPI) -> None:
     '显示账号信息到终端'
-    tui_ctx.print(f"[green]账号已登录[/] puid={api.acc.puid} name={api.acc.name} sex={api.acc.sex} schools={api.acc.school} stu_id={api.acc.stu_id}")
+    tui_ctx.print(f"[green]账号已登录[/] {' '.join(f'{k}={v}' for k, v in api.acc.__dict__.items())}")
 
 def login(tui_ctx: Console, api: ChaoXingAPI):
     '交互-登录账号'
@@ -49,7 +55,7 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
                     tui_ctx.print('[green]登录成功')
                     api.accinfo()
                     accinfo(tui_ctx, api)
-                    save_session(api)
+                    save_session(api.ck_dump(), api.acc)
                     return
                 match qr_status.get('type'):
                     case '1':
@@ -72,7 +78,7 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
                 tui_ctx.print('[green]登录成功')
                 tui_ctx.print(result)
                 api.accinfo()
-                save_session(api, passwd)
+                save_session(api.ck_dump(), api.acc, passwd)
                 return
             else:
                 tui_ctx.print('[red]登录失败')
@@ -89,7 +95,7 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
                 tui_ctx.print('[green]重新登录成功')
                 tui_ctx.print(result)
                 api.accinfo()
-                save_session(api, passwd)
+                save_session(api.ck_dump(), api.acc, passwd)
                 return True
             else:
                 tui_ctx.print('[red]登录失败, 清手动登录')
@@ -133,9 +139,9 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
 def select_class(tui_ctx: Console, classes: Classes):
     '交互-选择课程'
     tb = Table('序号', '课程名', '老师名', '课程id', '课程状态', title='所学的课程', border_style='blue')
-    for num, cla in enumerate(classes.classes):
+    for index, cla in enumerate(classes.classes):
         tb.add_row(
-            f'[green]{num}', cla.name, cla.teacher_name, str(cla.courseid),
+            f'[green]{index}', cla.name, cla.teacher_name, str(cla.courseid),
             '[red]已结课' if cla.state else '[green]进行中'
         )
     while True:

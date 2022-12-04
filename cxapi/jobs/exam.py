@@ -4,16 +4,17 @@ import re
 import time
 from typing import Any
 
-import lxml.html
 import requests
+from bs4 import BeautifulSoup
 from rich.json import JSON
 from rich.layout import Layout
 from rich.panel import Panel
 from rich.table import Table
 
+from logger import Logger
 from searcher import SearcherBase
 
-from ..schema import AccountInfo, QuestionEnum, QuestionModel
+from ..schema import AccountInfo, QuestionType, QuestionModel
 
 API_EXAM_COMMIT = 'https://mooc1-api.chaoxing.com/work/addStudentWorkNew'        # 接口-单元测验答题提交
 PAGE_MOBILE_CHAPTER_CARD = 'https://mooc1-api.chaoxing.com/knowledge/cards'      # SSR页面-客户端章节任务卡片
@@ -21,6 +22,7 @@ PAGE_MOBILE_EXAM = 'https://mooc1-api.chaoxing.com/android/mworkspecial'        
 
 class ChapterExam:
     '章节测验'
+    logger: Logger
     session: requests.Session
     acc: AccountInfo
     # 基本参数
@@ -60,6 +62,8 @@ class ChapterExam:
         self.clazzid = clazzid
         self.cpi = cpi
         self.point_index = point_index
+        self.logger = Logger('PointExam')
+        self.logger.set_loginfo(self.acc.phone)
     
     def pre_fetch(self) -> bool:
         '预拉取试题  返回是否需要完成'
@@ -73,20 +77,24 @@ class ChapterExam:
             'cpi': self.cpi
         })
         resp.raise_for_status()
+        html = BeautifulSoup(resp.text, 'lxml')
         try:
-            if r := re.search(r'window\.AttachmentSetting *= *(.+?);', resp.text):
-                j = json.loads(r.group(1))
+            if r := re.search(r'window\.AttachmentSetting *= *(.+?);', html.head.find('script', type='text/javascript').text):
+                attachment = json.loads(r.group(1))
             else:
                 raise ValueError
-            self.ktoken = j['defaults']['ktoken']
-            self.enc = j['attachments'][self.point_index]['enc']
-            if (job := j['attachments'][self.point_index].get('job')) is not None:
+            self.ktoken = attachment['defaults']['ktoken']
+            self.enc = attachment['attachments'][self.point_index]['enc']
+            if (job := attachment['attachments'][self.point_index].get('job')) is not None:
                 needtodo = job in (True, None)  # 这里有部分试题不存在`job`字段
                 self.need_jobid = True  # 不知道为什么这里的`job`字段和请求试题的接口的`jobid`参数有关
             else:
                 self.need_jobid = False
                 needtodo = True
+            self.logger.info('预拉取成功')
+            self.logger.debug(f'attachment: {attachment}')
         except Exception:
+            self.logger.error('预拉取失败')
             raise RuntimeError('试题预拉取出错')
         return needtodo
     
@@ -106,85 +114,84 @@ class ChapterExam:
             'enc': self.enc
         }, allow_redirects=True)
         resp.raise_for_status()
-        root = lxml.html.fromstring(resp.text)
-        if re.search(r'已批阅', root.xpath("//title/text()")[0]):
+        self.logger.info('拉取成功')
+        html = BeautifulSoup(resp.text, 'lxml')
+        if re.search(r'已批阅', html.find('title').text):
+            self.logger.warning('试题已批阅')
             return False
-        if p := root.xpath("//p[@class='blankTips']/text()"):
-            if re.search(r'无效的权限', p[0]):
+        if p := html.find('p', {'class': 'blankTips'}):
+            if re.search(r'无效的权限', p.text):
+                self.logger.warning('试题无权限')
                 return False
-        self.title = root.xpath("//h3[contains(@class, 'py-Title')]/text()")[0].strip()
+        self.title = html.find('h3', {'class': 'py-Title'}).text.strip()
         # 提取答题表单参数
-        self.workAnswerId = int(root.xpath("//input[@name='workAnswerId']/@value")[0])
-        self.enc_work = root.xpath("//input[@name='enc_work']/@value")[0]
-        self.totalQuestionNum = root.xpath("//input[@name='totalQuestionNum']/@value")[0]
-        self.fullScore = root.xpath("//input[@name='fullScore']/@value")[0]
-        self.workRelationId = int(root.xpath("//input[@name='workRelationId']/@value")[0])
-        # 提取并解析题目
-        question_node = root.xpath("//div[@class='zquestions']/div[@class='Py-mian1']")
+        self.workAnswerId = int(html.find('input', {'name': 'workAnswerId'})['value'])
+        self.enc_work = html.find('input', {'name': 'enc_work'})['value']
+        self.totalQuestionNum = html.find('input', {'name': 'totalQuestionNum'})['value']
+        self.fullScore = html.find('input', {'name': 'fullScore'})['value']
+        self.workRelationId = int(html.find('input', {'name': 'workRelationId'})['value'])
         self.questions = []
-        for question in question_node:  # 遍历题目
+        for question_node in html.find_all('div', {'class': 'Py-mian1'}):  # 提取并遍历题目
+            question_id = int(question_node.select_one("input[id*='answertype']")['id'][10:])  # 获取题目 id
+            question_type = QuestionType(int(question_node.select_one("input[id*='answertype']")['value']))  # 获取题目类型
             # 查找并净化题目字符串
             # 因为题目所在标签不确定, 可能为 div.Py-m1-title/ 也可能为 div.Py-m1-title/span 也可能为 div.Py-m1-title/p
-            q_title_node = question.xpath("div/div[contains(@class, 'Py-m1-title')]")[0]
-            value = ''.join(q_title_node.xpath("text() | */text()")[2:]).strip().replace('\n', '').replace('\r', '')
-            if r := re.match(r'answers?(\d+)', question.xpath("div/input[@class='answerInput']/@id")[0]):
-                question_id = int(r.group(1))
-            else:
-                raise ValueError
-            answers = question.xpath("div/ul[contains(@class, 'answerList')]/li")
-            question_type = QuestionEnum(int(question.xpath("div/input[starts-with(@id, 'answertype')]/@value")[0]))
+            q_title_node = question_node.find('div', {'class': 'Py-m1-title'})
+            value = ''.join(list(q_title_node.strings)[2:]).strip().replace('\n', '').replace('\r', '')
+            # 开始解析选项
             answer_map = {}
-            for answer in answers: # 遍历选项
-                match question_type:
-                    case QuestionEnum.单选题 | QuestionEnum.多选题:
-                        k = answer.xpath("em/@id-param")[0].strip()
-                        if x := answer.xpath("p/cc/text()"):
-                            v = x[0].strip()
-                        elif x := answer.xpath("cc/p/text()"):
-                            v = x[0].strip()
-                        else:
-                            v = answer.xpath("p/cc/p/text()")[0].strip()
-                        answer_map[k] = v
-                    case QuestionEnum.判断题:
-                        k = answer.xpath("@val-param")[0].strip()
-                        v = answer.xpath("p/text()")[0].strip()
-                        answer_map[k] = v
-                    case _:
-                        raise NotImplementedError('不支持的题目类型')
-            self.questions.append(QuestionModel(
-                question_id=question_id,
+            if question_type in (QuestionType.单选题, QuestionType.多选题):
+                answers = question_node.find('ul', {'class': 'answerList'}).find_all('li')
+                for answer in answers: # 遍历选项
+                    k = answer.em['id-param'].strip()
+                    answer_map[k] = answer.find_all(['p','cc'])[-1].text.strip()
+            question = QuestionModel(
+                q_id=question_id,
                 value=value,
-                question_type=question_type,
+                q_type=question_type,
                 answers=answer_map,
-                option=''
-            ))
+                answer=''
+            )
+            self.questions.append(question)
+            self.logger.debug(f"question schema: {question.__dict__}")
+        self.logger.info(
+            f'试题解析成功 共 {len(self.questions)} 道 '
+            f'[{self.title}(J.{self.jobid}/W.{self.workid})]'
+        )
         return True
     
     def __fill_answer(self, question: QuestionModel, search_resp: dict) -> bool:
         '查询并填充对应选项'
+        log_sufixx = f'[{question.value}(Id.{question.q_id})]'
+        self.logger.debug(f'开始填充题目 {log_sufixx}')
         if search_resp.get('code') == 1:
             if (r := self.searcher.rsp_query.parse(search_resp)):
                 search_answer: str = r[0].strip()
             else:
                 return False  # JsonPath 选择器匹配失败返回
-            match question.question_type:
-                case QuestionEnum.单选题:
+            match question.q_type:
+                case QuestionType.单选题:
                     for k, v in question.answers.items():
                         if difflib.SequenceMatcher(a=v, b=search_answer).ratio() >= 0.9:
-                            question.option = k
+                            question.answer = k
+                            self.logger.debug(f'单选题命中 {k}={v} {log_sufixx}')
                             return True
                     else:
+                        self.logger.warning(f'单选题填充失败 {log_sufixx}')
                         return False
-                case QuestionEnum.判断题:
+                case QuestionType.判断题:
                     if re.search(r'(错|错误|×)', search_answer):
-                        question.option = 'false'
+                        question.answer = 'false'
+                        self.logger.debug(f'判断题命中 true {log_sufixx}')
                         return True
                     elif re.search(r'(对|正确|√)', search_answer):
-                        question.option = 'true'
+                        question.answer = 'true'
+                        self.logger.debug(f'判断题命中 false {log_sufixx}')
                         return True
                     else:
+                        self.logger.warning(f'判断题填充失败 {log_sufixx}')
                         return False
-                case QuestionEnum.多选题:
+                case QuestionType.多选题:
                     option_lst = []
                     if len(part_answer_lst := search_answer.split('#')) <= 1:
                         part_answer_lst = search_answer.split(';')
@@ -192,14 +199,19 @@ class ChapterExam:
                         for k, v in question.answers.items():
                             if difflib.SequenceMatcher(a=v, b=part_answer).ratio() >= 0.9:
                                 option_lst.append(k)
+                                self.logger.debug(f'多选题命中 {k}={v} {log_sufixx}')
                     option_lst.sort()  # 多选题选项必须排序，否则提交错误
                     if len(option_lst):
-                        question.option = ''.join(option_lst)
+                        question.answer = ''.join(option_lst)
+                        self.logger.debug(f'多选题最终选项 {question.answer}')
                         return True
+                    self.logger.warning(f'多选题填充失败 {log_sufixx}')
                     return False
                 case _:
-                    raise NotImplementedError
+                    self.logger.warning(f'未实现的题目类型 {question.q_type.name}/{question.q_type.value} {log_sufixx}')
+                    return False
         else:
+            self.logger.warning(f"题库接口响应码异常 errCode={search_resp.get('code')} {log_sufixx}")
             return False
     
     def mount_searcher(self, searcher_obj: Any) -> None:
@@ -208,27 +220,43 @@ class ChapterExam:
     
     def fill_and_commit(self, tui_ctx: Layout) -> None:
         '填充并提交试题 答题主逻辑'
+        self.logger.info(
+            f'开始完成试题 '
+            f'[{self.title}(J.{self.jobid}/W.{self.workid})]'
+        )
         tb = Table('id', '类型', '题目', '选项')
         msg = Layout(name='msg')
         tui_ctx.split_column(tb, msg)
         tb.title = f'[bold yellow]答题中[/]  {self.title}'
         tb.border_style = 'yellow'
-        mistake_questions = {}  # 答错题列表
+        mistake_questions = []  # 答错题列表
         for question in self.questions:
-            search_resp = self.searcher.invoke(question.value)  # 调用搜索器搜索方法
-            msg.update(Panel(
-                JSON.from_data(search_resp, ensure_ascii=False),
-                title='题库接口返回'
-            ))
-            status = self.__fill_answer(question, search_resp)  # 填充选项
-            tb.add_row(
-                str(question.question_id),
-                question.question_type.name,
-                question.value,
-                (f'[green]{question.option}' if status else '[red]未匹配')
-            )
+            try:
+                search_resp = self.searcher.invoke(question.value)  # 调用搜索器搜索方法
+            except Exception as err:
+                status = False
+                search_resp = ''
+                self.logger.warning(f'题库调用异常 err={err.__str__()}')
+                msg.update(Panel(
+                    err.__str__(),
+                    title='[red]题库接口异常',
+                    border_style='red'
+                ))
+            else:
+                self.logger.debug(f'题库调用成功 req={question.value} rsp={search_resp}')
+                msg.update(Panel(
+                    JSON.from_data(search_resp, ensure_ascii=False),
+                    title='题库接口返回'
+                ))
+                status = self.__fill_answer(question, search_resp)  # 填充选项
+                tb.add_row(
+                    str(question.q_id),
+                    question.q_type.name,
+                    question.value,
+                    (f'[green]{question.answer}' if status else '[red]未匹配')
+                )
             if status == False:
-                mistake_questions[question.value] = self.searcher.rsp_query.parse(search_resp)  # 记录错题
+                mistake_questions.append((question, self.searcher.rsp_query.parse(search_resp)))  # 记录错题
             time.sleep(1.0)
         # 没有错误
         if (mistake_num := len(mistake_questions)) == 0:
@@ -237,33 +265,59 @@ class ChapterExam:
             commit_result = self.__commit()  # 提交试题
             j = JSON.from_data(commit_result, ensure_ascii=False)
             if commit_result['status'] == True:
+                self.logger.info(
+                    f'试题提交成功 '
+                    f'[{self.title}(J.{self.jobid}/W.{self.workid})]'
+                )
                 msg.update(Panel(j, title='提交成功 TAT！', border_style='green'))
             else:
+                self.logger.warning(
+                    f'试题提交失败 '
+                    f'[{self.title}(J.{self.jobid}/W.{self.workid})]'
+                )
                 msg.update(Panel(j, title='提交失败！', border_style='red'))
         # 存在错误
         else:
             tb.title = f'[bold red]有{mistake_num}道错误[/]  {self.title}'
             tb.border_style = 'red'
             msg.update(Panel(
-                '\n'.join(f'q：{q}\na：{a}' for q, a in mistake_questions.items()),
+                '\n'.join(f"q：{q.value}\na：{a}" for q, a in mistake_questions),
                 title='有错误的题', highlight=False, style='red'
             ))
-            # TODO:提交保存试题并记录到log文件
+            self.logger.warning(
+                f'试题未完成 '
+                f'[{self.title}(J.{self.jobid}/W.{self.workid})]'
+            )
+            self.logger.warning(
+                f'共 {mistake_num} 题未完成\n' +
+                '--------------------\n' +
+                '\n'.join((
+                        f"{i}.\tq({q.q_type.name}/{q.q_type.value}): {q.value} " + (
+                            f"\n\to: {' '.join(f'{k}={v}' for k, v in q.answers.items())}" 
+                            if q.q_type in (QuestionType.单选题, QuestionType.多选题) 
+                            else '') +
+                        f"\n\ta: {a}"  
+                    ) for i, (q, a)
+                    in enumerate(mistake_questions, 1)
+                ) +
+                '\n--------------------'
+            )
         time.sleep(5.0)
     
     def __mk_answer_reqdata(self) -> dict[str, str]:
         '输出试题答案表单信息'
         result = {
-            'answerwqbid': ','.join(str(q.question_id) for q in self.questions)
+            'answerwqbid': ','.join(str(q.q_id) for q in self.questions)
         }
         for q in self.questions:
-            result[f'answer{q.question_id}'] = q.option
-            result[f'answertype{q.question_id}'] = q.question_type.value
+            result[f'answer{q.q_id}'] = q.answer
+            result[f'answertype{q.q_id}'] = q.q_type.value
         return result
     
     def __commit(self) -> dict:
         '提交答题信息'
         answer_data = self.__mk_answer_reqdata()
+        self.logger.debug(f'试题提交 payload: {answer_data}')
         resp = self.session.post(API_EXAM_COMMIT,
             params={
                 'keyboardDisplayRequiresUserAction': 1,
@@ -300,6 +354,7 @@ class ChapterExam:
         )
         resp.raise_for_status()
         json_content = resp.json()
+        self.logger.debug(f'试题提交 resp: {json_content}')
         return json_content
 
 __all__ = ['ChapterExam']

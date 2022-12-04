@@ -36,17 +36,19 @@ class ChapterModel:
     point_total: int
     point_finish: int
 
-class QuestionEnum(Enum):
+class QuestionType(Enum):
     '题目类型枚举'
     单选题 = 0
     多选题 = 1
     判断题 = 3
+    简答题 = 4
+    论述题 = 6
 
 @dataclass
 class QuestionModel:
     '题目数据模型'
-    question_id: int
+    q_id: int
     value: str
-    question_type: QuestionEnum
+    q_type: QuestionType
     answers: dict[str, str]
-    option: str
+    answer: str

@@ -17,12 +17,14 @@
 
 - ✅支持手机号+密码登录、二维码登录, 自动判断账号 ck 有效性, 自动 + 手动重登账号
 - ✅自带多会话管理器，自动获取用户信息，以 json 格式存档在本地
-- ✅Terminal-UI 方式进行人机交互，展示任务进程、任务点状态
-- ✅视频课程任务点模拟播放
+- ✅Terminal-UI 方式进行人机交互，及展示任务进程、任务点完成状态
+- ✅使用[requests](https://github.com/psf/requests)及[bs4](https://www.crummy.com/software/BeautifulSoup/)分别进行协议模拟和 HTML 解析，故无需浏览器
+- ✅视频课程任务点模拟播放（无需消耗流量播放流媒体内容）
 - ✅文档任务点模拟浏览（如 word ppt pdf 等）
 - ✅章节测验任务点自动答题，支持单选题、多选题、判断题
 - ✅支持`REST API`、`JSON`、`SQLite`三种类型的题库
 - ✅`REST API`类型（在线题库接口）支持使用 JsonPath 语法进行答案字段提取
+- ✅记录详细的运行日志及未完成的题目至日志文件
 
 ### 暂不支持的功能
 
@@ -33,12 +35,10 @@
 - ❌章节测验任务点简答题
 - ❌保存未完成的章节测验任务点
 - ❌多题库搜索器实例混用及负载均衡
-- ❌记录错题到日志
 
 ### 已知存在 BUG 的功能
 
 - ⭕获取任务点状态会出现 `0/0`的情况 (即使任务点存在未做)
-- ⭕拉取试题有概率出现权限无效情况
 
 ## Typographical
 
@@ -92,9 +92,10 @@ docker run -it \
 
 ```yaml
 multiSession: true  # 是否开启多会话模式
-sessionPath: "session/"  # 会话存档路径
 maskAcc: true  # 是否开启姓名手机号打码
 tUIMaxHeight: 20  # TUI 最大显示高度
+sessionPath: "session/"  # 会话存档路径
+logPath: "logs/"  # 日志文件路径
 
 # 视频
 video:

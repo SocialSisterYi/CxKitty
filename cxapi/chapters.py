@@ -1,14 +1,15 @@
 import json
-import time
 from typing import TypeVar
 
-import lxml.html
 import requests
+from bs4 import BeautifulSoup
 from rich.layout import Layout
 from rich.panel import Panel
 from wcwidth import wcswidth
 
-from . import APIError, calc_infenc
+from logger import Logger
+
+from . import APIError, calc_infenc, get_dc
 from .jobs.document import ChapterDocument
 from .jobs.exam import ChapterExam
 from .jobs.video import ChapterVideo
@@ -22,6 +23,7 @@ API_CHAPTER_CARDS = 'https://mooc1-api.chaoxing.com/gas/knowledge'              
 
 class ClassChapters:
     '课程章节'
+    logger: Logger
     session: requests.Session
     acc: AccountInfo
     chapters: list[ChapterModel]
@@ -36,6 +38,8 @@ class ClassChapters:
         self.courseid = courseid
         self.clazzid = clazzid
         self.cpi = cpi
+        self.logger = Logger('Chapters')
+        self.logger.set_loginfo(self.acc.phone)
         
         self.chapters = [
             ChapterModel(
@@ -90,7 +94,7 @@ class ClassChapters:
             'view': 'json',
             'nodes': ','.join(str(c.chapter_id) for c in self.chapters),
             'clazzid': self.clazzid,
-            'time': int(time.time()*1000),
+            'time': get_dc(),
             'userid': self.acc.puid,
             'cpi': self.cpi,
             'courseid': self.courseid
@@ -101,36 +105,47 @@ class ClassChapters:
             point_data = json_content[str(c.chapter_id)]
             c.point_total = point_data['totalcount']
             c.point_finish = point_data['finishcount']
+        self.logger.info('任务点状态已更新')
     
-    def fetch_points_by_index(self, num: int) -> list[TaskPointType]:
+    def fetch_points_by_index(self, index: int) -> list[TaskPointType]:
         '以课程序号拉取对应“章节”的任务节点卡片资源'
         params = {
-            'id': self.chapters[num].chapter_id,
+            'id': self.chapters[index].chapter_id,
             'courseid': self.courseid,
             'fields': 'id,parentnodeid,indexorder,label,layer,name,begintime,createtime,lastmodifytime,status,jobUnfinishedCount,clickcount,openlock,card.fields(id,knowledgeid,title,knowledgeTitile,description,cardorder).contentcard(all)',
             'view': 'json',
             'token': '4faa8662c59590c6f43ae9fe5b002b42',
-            '_time': int(time.time()*1000)
+            '_time': get_dc()
         }
         resp = self.session.get(API_CHAPTER_CARDS, params={**params, 'inf_enc': calc_infenc(params)})
         resp.raise_for_status()
         content_json = resp.json()
         if len(content_json['data']) == 0:
+            self.logger.error(
+                f'获取章节任务节点卡片失败 '
+                f'[{self.chapters[index].label}:{self.chapters[index].name}(Id.{self.chapters[index].chapter_id})]'
+            )
             raise APIError
         cards = content_json['data'][0]['card']['data']
+        self.logger.info(
+            f'获取章节任务节点卡片成功 共 {len(cards)} 个 '
+            f'[{self.chapters[index].label}:{self.chapters[index].name}(Id.{self.chapters[index].chapter_id})]'
+        )
         point_objs = []  # 任务点实例化列表
         for card_index, card in enumerate(cards):  # 遍历章节卡片
             if card['description'] == '':
+                self.logger.warning(f"({card_index}) 卡片 iframe 不存在 {card}")
                 continue
-            inline_html = lxml.html.fromstring(card['description'])
-            points = inline_html.xpath("//iframe")
+            inline_html = BeautifulSoup(card['description'], 'lxml')
+            points = inline_html.find_all('iframe')
+            self.logger.debug(f'({card_index}) 解析卡片成功 共 {len(points)} 个任务点')
             for point_index, point in enumerate(points):  # 遍历任务点列表
                 # 获取任务点类型 跳过不存在 Type 的任务点
-                if point_type := point.xpath("@module"):
-                    point_type = point_type[0]
-                else:
+                if 'module' not in point.attrs:
+                    self.logger.warning(f"({card_index}, {point_index}) 任务点 type 不存在 {card['description']}")
                     continue
-                json_data = json.loads(point.xpath("@data")[0])
+                point_type = point['module']
+                json_data = json.loads(point['data'])
                 # 进行分类讨论任务点类型并做 ORM
                 match point_type:
                     case 'insertvideo':
@@ -141,11 +156,12 @@ class ClassChapters:
                             card_index=card_index,
                             point_index=point_index,
                             courseid=self.courseid,
-                            knowledgeid=self.chapters[num].chapter_id,
+                            knowledgeid=self.chapters[index].chapter_id,
                             objectid=json_data['objectid'],
                             clazzid=self.clazzid,
                             cpi=self.cpi
                         ))
+                        self.logger.debug(f'({card_index}, {point_index}) 视频任务点 schema: {json_data}')
                     case 'work':
                         # 测验任务点
                         point_objs.append(ChapterExam(
@@ -156,10 +172,11 @@ class ClassChapters:
                             courseid=self.courseid,
                             workid=json_data['workid'],
                             jobid=json_data['_jobid'],
-                            knowledgeid=self.chapters[num].chapter_id,
+                            knowledgeid=self.chapters[index].chapter_id,
                             clazzid=self.clazzid,
                             cpi=self.cpi
                         ))
+                        self.logger.debug(f'({card_index}, {point_index}) 测验任务点 schema: {json_data}')
                     case 'insertdoc':
                         # 文档查看任务点
                         point_objs.append(ChapterDocument(
@@ -168,9 +185,14 @@ class ClassChapters:
                             card_index=card_index,
                             point_index=point_index,
                             courseid=self.courseid,
-                            knowledgeid=self.chapters[num].chapter_id,
+                            knowledgeid=self.chapters[index].chapter_id,
                             clazzid=self.clazzid,
                             cpi=self.cpi,
                             objectid=json_data['objectid']
                         ))
+                        self.logger.debug(f'({card_index}, {point_index}) 文档任务点 schema: {json_data}')
+        self.logger.info(
+            f'章节 任务节点解析成功 共 {len(point_objs)} 个 '
+            f'[{self.chapters[index].label}:{self.chapters[index].name}(Id.{self.chapters[index].chapter_id})]'
+        )
         return point_objs
