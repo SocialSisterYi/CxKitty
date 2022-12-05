@@ -32,5 +32,5 @@ class Logger:
     def warning(self, msg):
         self.logger.warning(msg)
         
-    def error(self, msg):
-        self.logger.error(msg)
+    def error(self, msg, exc_info=False):
+        self.logger.error(msg, exc_info=exc_info)

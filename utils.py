@@ -6,7 +6,7 @@ from typing import Optional
 import yaml
 from cxapi.schema import AccountInfo
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 CONF: dict = yaml.load(open('config.yml', 'r', encoding='utf8') , yaml.FullLoader)
 CONF_SESSPATH = Path(CONF['sessionPath'])  # 会话存档路径
