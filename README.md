@@ -93,7 +93,7 @@ docker build --tag cx_kitty .
 docker run -it \
   --name shuake_task1 \
   -v "$PWD/session:/app/session" \
-  -v "$PWD//app/logs:/app//app/logs" \
+  -v "$PWD/app/logs:/app/logs" \
   -v "$PWD/config.yml:/app/config.yml" \
   #-v "$PWD/questions.json:/app/questions.json" \
   #-v "$PWD/questions.db:/app/questions.db" \
