@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "CxKitty"
-version = "0.2.1"
+version = "0.2.2"
 description = "超星学习通答题姬"
 authors = ["SocialSisterYi"]
 license = "GPL-3.0"

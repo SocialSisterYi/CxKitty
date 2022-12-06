@@ -41,6 +41,7 @@ class ChapterVideo:
     jobid: str
     otherInfo: str
     title: str
+    rt: float
     
     def __init__(self, session: requests.Session, acc: AccountInfo, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int, point_index: int) -> None:
         self.session = session
@@ -76,6 +77,7 @@ class ChapterVideo:
             self.fid = attachment['defaults']['fid']
             self.jobid = attachment['attachments'][self.point_index]['jobid']
             self.otherInfo = attachment['attachments'][self.point_index]['otherInfo']
+            self.rt = float(attachment['attachments'][self.point_index]['property']['rt'])
             needtodo = attachment['attachments'][self.point_index].get('isPassed') in (False, None)
             self.logger.info('预拉取成功')
             self.logger.debug(f'attachment: {attachment}')
@@ -119,7 +121,7 @@ class ChapterVideo:
                 'userid': self.acc.puid,
                 'isdrag': '0',
                 'enc': md5(f'[{self.clazzid}][{self.acc.puid}][{self.jobid}][{self.objectid}][{playing_time * 1000}][d_yHJ!$pdA~5][{self.duration * 1000}][0_{self.duration}]'.encode()).hexdigest(),
-                'rt': '0.9',  # 'rt': '1.0',  ??
+                'rt': self.rt,
                 'dtype': 'Video',
                 'view': 'pc',
                 '_t': int(time.time()*1000)
