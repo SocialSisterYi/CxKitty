@@ -74,13 +74,13 @@ class ChapterVideo:
                 attachment = json.loads(r.group(1))
             else:
                 raise ValueError
+            self.logger.debug(f'attachment: {attachment}')
             self.fid = attachment['defaults']['fid']
             self.jobid = attachment['attachments'][self.point_index]['jobid']
             self.otherInfo = attachment['attachments'][self.point_index]['otherInfo']
-            self.rt = float(attachment['attachments'][self.point_index]['property']['rt'])
+            self.rt = float(attachment['attachments'][self.point_index]['property'].get('rt', 0.9))
             needtodo = attachment['attachments'][self.point_index].get('isPassed') in (False, None)
             self.logger.info('预拉取成功')
-            self.logger.debug(f'attachment: {attachment}')
         except Exception:
             self.logger.error('预拉取失败')
             raise RuntimeError('视频预拉取出错')

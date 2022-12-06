@@ -20,6 +20,31 @@ API_EXAM_COMMIT = 'https://mooc1-api.chaoxing.com/work/addStudentWorkNew'       
 PAGE_MOBILE_CHAPTER_CARD = 'https://mooc1-api.chaoxing.com/knowledge/cards'      # SSR页面-客户端章节任务卡片
 PAGE_MOBILE_EXAM = 'https://mooc1-api.chaoxing.com/android/mworkspecial'         # SSR页面-客户端单元测验答题页
 
+
+def parse_question(question_node: BeautifulSoup):
+    '解析题目'
+    question_id = int(question_node.select_one("input[id*='answertype']")['id'][10:])  # 获取题目 id
+    question_type = QuestionType(int(question_node.select_one("input[id*='answertype']")['value']))  # 获取题目类型
+    # 查找并净化题目字符串
+    # 因为题目所在标签不确定, 可能为 div.Py-m1-title/ 也可能为 div.Py-m1-title/span 也可能为 div.Py-m1-title/p
+    q_title_node = question_node.find('div', {'class': 'Py-m1-title'})
+    value = ''.join(list(q_title_node.strings)[2:]).strip().replace('\n', '').replace('\r', '')
+    # 开始解析选项
+    answer_map = {}
+    if question_type in (QuestionType.单选题, QuestionType.多选题):
+        answers = question_node.find('ul', {'class': 'answerList'}).find_all('li')
+        for answer in answers: # 遍历选项
+            k = answer.em['id-param'].strip()
+            answer_map[k] = answer.find_all(['p','cc'])[-1].text.strip()
+    return QuestionModel(
+        q_id=question_id,
+        value=value,
+        q_type=question_type,
+        answers=answer_map,
+        answer=''
+    )
+    
+
 class ChapterExam:
     '章节测验'
     logger: Logger
@@ -83,6 +108,7 @@ class ChapterExam:
                 attachment = json.loads(r.group(1))
             else:
                 raise ValueError
+            self.logger.debug(f'attachment: {attachment}')
             self.ktoken = attachment['defaults']['ktoken']
             self.enc = attachment['attachments'][self.point_index]['enc']
             if (job := attachment['attachments'][self.point_index].get('job')) is not None:
@@ -92,7 +118,6 @@ class ChapterExam:
                 self.need_jobid = False
                 needtodo = True
             self.logger.info('预拉取成功')
-            self.logger.debug(f'attachment: {attachment}')
         except Exception:
             self.logger.error('预拉取失败')
             raise RuntimeError('试题预拉取出错')
@@ -116,6 +141,7 @@ class ChapterExam:
         resp.raise_for_status()
         self.logger.info('拉取成功')
         html = BeautifulSoup(resp.text, 'lxml')
+        # 抓取标题并判断有效性
         if re.search(r'已批阅', html.find('title').text):
             self.logger.warning('试题已批阅')
             return False
@@ -131,27 +157,9 @@ class ChapterExam:
         self.fullScore = html.find('input', {'name': 'fullScore'})['value']
         self.workRelationId = int(html.find('input', {'name': 'workRelationId'})['value'])
         self.questions = []
-        for question_node in html.find_all('div', {'class': 'Py-mian1'}):  # 提取并遍历题目
-            question_id = int(question_node.select_one("input[id*='answertype']")['id'][10:])  # 获取题目 id
-            question_type = QuestionType(int(question_node.select_one("input[id*='answertype']")['value']))  # 获取题目类型
-            # 查找并净化题目字符串
-            # 因为题目所在标签不确定, 可能为 div.Py-m1-title/ 也可能为 div.Py-m1-title/span 也可能为 div.Py-m1-title/p
-            q_title_node = question_node.find('div', {'class': 'Py-m1-title'})
-            value = ''.join(list(q_title_node.strings)[2:]).strip().replace('\n', '').replace('\r', '')
-            # 开始解析选项
-            answer_map = {}
-            if question_type in (QuestionType.单选题, QuestionType.多选题):
-                answers = question_node.find('ul', {'class': 'answerList'}).find_all('li')
-                for answer in answers: # 遍历选项
-                    k = answer.em['id-param'].strip()
-                    answer_map[k] = answer.find_all(['p','cc'])[-1].text.strip()
-            question = QuestionModel(
-                q_id=question_id,
-                value=value,
-                q_type=question_type,
-                answers=answer_map,
-                answer=''
-            )
+        # 提取并遍历题目
+        for question_node in html.find_all('div', {'class': 'Py-mian1'}):
+            question = parse_question(question_node)
             self.questions.append(question)
             self.logger.debug(f"question schema: {question.__dict__}")
         self.logger.info(
@@ -302,6 +310,7 @@ class ChapterExam:
                 ) +
                 '\n--------------------'
             )
+            # TODO: 答题失败提交保存
         time.sleep(5.0)
     
     def __mk_answer_reqdata(self) -> dict[str, str]:

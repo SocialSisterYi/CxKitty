@@ -32,13 +32,14 @@
 
 - ❌短信验证码登录、学号登录
 - ❌直播任务点、文章阅读任务点、课程考试
-- ❌章节测验任务点简答题
 - ❌保存未完成的章节测验任务点
 - ❌多题库搜索器实例混用及负载均衡
+- ❌章节测验任务点之填空题、简答题、论述题等
 
 ### 已知存在 BUG 的功能
 
 - ⭕获取任务点状态会出现 `0/0`的情况 (即使任务点存在未做)
+- ⭕对于选项为图片的题目无法匹配
 
 ## Typographical
 
@@ -76,13 +77,26 @@ docker build --tag cx_kitty .
 
 运行容器
 
+请按实际情况映射以下容器内路径
+
+`/app/session`会话存档目录
+
+`/app/logs`程序日志目录
+
+`/app/config.yml`程序配置文件
+
+`/app/questions.json`json题库 (根据配置文件修改)
+
+`/app/questions.db`sqlite题库 (根据配置文件修改)
+
 ```bash
 docker run -it \
   --name shuake_task1 \
   -v "$PWD/session:/app/session" \
-  -v "$PWD/config.yml:/app/config.yml" \  # 程序配置文件
-  #-v "$PWD/questions.json:/app/questions.json" \  # json题库 (根据配置文件修改路径映射)
-  #-v "$PWD/questions.db:/app/questions.db" \  # sqlite题库 (根据配置文件修改路径映射)
+  -v "$PWD//app/logs:/app//app/logs" \
+  -v "$PWD/config.yml:/app/config.yml" \
+  #-v "$PWD/questions.json:/app/questions.json" \
+  #-v "$PWD/questions.db:/app/questions.db" \
   cx_kitty
 ```
 
@@ -90,50 +104,7 @@ docker run -it \
 
 配置文件使用 Yaml 语法编写，存放于 [config.yml](config.yml)
 
-```yaml
-multiSession: true  # 是否开启多会话模式
-maskAcc: true  # 是否开启姓名手机号打码
-tUIMaxHeight: 20  # TUI 最大显示高度
-sessionPath: "session/"  # 会话存档路径
-logPath: "logs/"  # 日志文件路径
-
-# 视频
-video:
-  enable: true  # 是否执行任务
-  speed: 1.0  # 播放速度
-  wait: 15  # 完成等待时间
-  report_rate: 58  # 视频播放汇报率 (没事别改)
-
-# 试题
-exam:
-  enable: true  # 是否执行任务
-  wait: 15  # 完成等待时间
-  #fail_save: true  # 是否匹配失败自动保存 (未实现)
-
-# 文档
-document:
-  enable: true  # 是否执行任务
-  wait: 15  # 完成等待时间
-
-# 搜索器
-searcher:
-  use: "jsonFileSearcher"  # 当前选择的搜索器
-  # REST API 在线搜题
-  restApiSearcher:
-    url: "http://127.0.0.1:88/v1/cx"  # API url
-    method: "POST"  # 请求方式
-    req_field: "question"  # 请求参数
-    rsp_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
-  # 本地 JSON 数据库搜索器 (key为题, value为答案)
-  jsonFileSearcher:
-    file_path: "questions.json"  # 数据库文件路径
-  # 本地 sqlite 数据库搜索器
-  sqliteSearcher:
-    file_path: "questions.db"  # 数据库文件路径
-    table: "question"  # 表名
-    req_field: "question"  # 请求字段
-    rsp_field: "answer"  # 返回字段
-```
+请根据注释修改配置内容
 
 ### 题库配置
 

@@ -65,12 +65,12 @@ class ChapterDocument:
                 attachment = json.loads(r.group(1))
             else:
                 raise ValueError
+            self.logger.debug(f'attachment: {attachment}')
             if attachment['attachments'][self.point_index].get('job') == True:  # 这里需要忽略非任务点文档
                 self.title = attachment['attachments'][self.point_index]['property']['name']
                 self.jobid = attachment['attachments'][self.point_index]['jobid']
                 self.jtoken = attachment['attachments'][self.point_index]['jtoken']
                 self.logger.info('预拉取成功')
-                self.logger.debug(f'attachment: {attachment}')
                 return True
             self.logger.info(f'不存在任务已忽略')
             return False  # 非任务点文档不需要完成
