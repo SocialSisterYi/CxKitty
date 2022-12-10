@@ -170,8 +170,8 @@ class ChapterExam:
     
     def __fill_answer(self, question: QuestionModel, search_resp: dict) -> bool:
         '查询并填充对应选项'
-        log_sufixx = f'[{question.value}(Id.{question.q_id})]'
-        self.logger.debug(f'开始填充题目 {log_sufixx}')
+        log_suffix = f'[{question.value}(Id.{question.q_id})]'
+        self.logger.debug(f'开始填充题目 {log_suffix}')
         if search_resp.get('code') == 1:
             if (r := self.searcher.rsp_query.parse(search_resp)):
                 search_answer: str = r[0].strip()
@@ -182,22 +182,22 @@ class ChapterExam:
                     for k, v in question.answers.items():
                         if difflib.SequenceMatcher(a=v, b=search_answer).ratio() >= 0.9:
                             question.answer = k
-                            self.logger.debug(f'单选题命中 {k}={v} {log_sufixx}')
+                            self.logger.debug(f'单选题命中 {k}={v} {log_suffix}')
                             return True
                     else:
-                        self.logger.warning(f'单选题填充失败 {log_sufixx}')
+                        self.logger.warning(f'单选题填充失败 {log_suffix}')
                         return False
                 case QuestionType.判断题:
                     if re.search(r'(错|错误|×)', search_answer):
                         question.answer = 'false'
-                        self.logger.debug(f'判断题命中 true {log_sufixx}')
+                        self.logger.debug(f'判断题命中 true {log_suffix}')
                         return True
                     elif re.search(r'(对|正确|√)', search_answer):
                         question.answer = 'true'
-                        self.logger.debug(f'判断题命中 false {log_sufixx}')
+                        self.logger.debug(f'判断题命中 false {log_suffix}')
                         return True
                     else:
-                        self.logger.warning(f'判断题填充失败 {log_sufixx}')
+                        self.logger.warning(f'判断题填充失败 {log_suffix}')
                         return False
                 case QuestionType.多选题:
                     option_lst = []
@@ -207,19 +207,19 @@ class ChapterExam:
                         for k, v in question.answers.items():
                             if difflib.SequenceMatcher(a=v, b=part_answer).ratio() >= 0.9:
                                 option_lst.append(k)
-                                self.logger.debug(f'多选题命中 {k}={v} {log_sufixx}')
+                                self.logger.debug(f'多选题命中 {k}={v} {log_suffix}')
                     option_lst.sort()  # 多选题选项必须排序，否则提交错误
                     if len(option_lst):
                         question.answer = ''.join(option_lst)
                         self.logger.debug(f'多选题最终选项 {question.answer}')
                         return True
-                    self.logger.warning(f'多选题填充失败 {log_sufixx}')
+                    self.logger.warning(f'多选题填充失败 {log_suffix}')
                     return False
                 case _:
-                    self.logger.warning(f'未实现的题目类型 {question.q_type.name}/{question.q_type.value} {log_sufixx}')
+                    self.logger.warning(f'未实现的题目类型 {question.q_type.name}/{question.q_type.value} {log_suffix}')
                     return False
         else:
-            self.logger.warning(f"题库接口响应码异常 errCode={search_resp.get('code')} {log_sufixx}")
+            self.logger.warning(f"题库接口响应码异常 errCode={search_resp.get('code')} {log_suffix}")
             return False
     
     def mount_searcher(self, searcher_obj: Any) -> None:

@@ -118,7 +118,7 @@ class ChaoXingAPI:
             sex=['女', '男'][json_content['msg']['sex']],
             phone=json_content['msg']['phone'],
             school=json_content['msg']['schoolname'],
-            stu_id=json_content['msg']['uname']
+            stu_id=json_content['msg'].get('uname')  # 容许不存在学号的情况
         )
         self.logger.set_loginfo(self.acc.phone)
         self.logger.info(f"账号会话验证成功 {' '.join(f'{k}={v}' for k, v in self.acc.__dict__.items())}")

@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.layout import Layout
 from rich.live import Live
 from rich.panel import Panel
+from rich.traceback import install
 
 import dialog
 from cxapi.api import ChaoXingAPI
@@ -25,6 +26,7 @@ except ImportError:
     ...
 
 console = Console(height=CONF_TUI_MAX_HEIGHT)
+install(console=console, show_locals=False)
 
 # 自动判断类型, 并实例化搜索器
 if CONF_EN_EXAM:
@@ -103,6 +105,7 @@ def fuck_task_worker(chap: ClassChapters):
         time.sleep(5.0)
             
 if __name__ == '__main__':
+    
     api = ChaoXingAPI()
     dialog.logo(console)
     sessions = sessions_load()
