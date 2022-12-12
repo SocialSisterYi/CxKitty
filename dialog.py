@@ -2,7 +2,6 @@ import re
 import sys
 import time
 
-import maskpass
 from qrcode import QRCode
 from rich.console import Console
 from rich.table import Table
@@ -71,8 +70,7 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
                 time.sleep(1.0)
         # 手机号+密码登录
         else:
-            tui_ctx.print('[yellow]请输入密码：', end='')
-            passwd = maskpass.askpass('')
+            passwd = tui_ctx.input('[yellow]请输入密码 (隐藏)：', password=True)
             status, result = api.login_passwd(uname, passwd)
             if status:
                 tui_ctx.print('[green]登录成功')
