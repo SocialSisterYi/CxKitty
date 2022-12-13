@@ -188,11 +188,11 @@ class ChapterExam:
                         self.logger.warning(f'单选题填充失败 {log_suffix}')
                         return False
                 case QuestionType.判断题:
-                    if re.search(r'(错|错误|×)', search_answer):
+                    if re.search(r'(错|否|错误|false|×)', search_answer):
                         question.answer = 'false'
                         self.logger.debug(f'判断题命中 true {log_suffix}')
                         return True
-                    elif re.search(r'(对|正确|√)', search_answer):
+                    elif re.search(r'(对|是|正确|true|√)', search_answer):
                         question.answer = 'true'
                         self.logger.debug(f'判断题命中 false {log_suffix}')
                         return True

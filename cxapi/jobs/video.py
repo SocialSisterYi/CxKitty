@@ -76,15 +76,17 @@ class ChapterVideo:
                 raise ValueError
             self.logger.debug(f'attachment: {attachment}')
             self.fid = attachment['defaults']['fid']
-            self.jobid = attachment['attachments'][self.point_index]['jobid']
-            self.otherInfo = attachment['attachments'][self.point_index]['otherInfo']
-            self.rt = float(attachment['attachments'][self.point_index]['property'].get('rt', 0.9))
-            needtodo = attachment['attachments'][self.point_index].get('isPassed') in (False, None)
-            self.logger.info('预拉取成功')
+            if jobid := attachment['attachments'][self.point_index].get('jobid'):
+                self.jobid = jobid
+                self.otherInfo = attachment['attachments'][self.point_index]['otherInfo']
+                self.rt = float(attachment['attachments'][self.point_index]['property'].get('rt', 0.9))
+                self.logger.info('预拉取成功')
+                return attachment['attachments'][self.point_index].get('isPassed') in (False, None)  # 判断是否已完成
+            self.logger.info(f'不存在任务已忽略')
+            return False  # 非任务点视频不需要完成
         except Exception:
             self.logger.error('预拉取失败')
             raise RuntimeError('视频预拉取出错')
-        return needtodo
     
     def fetch(self) -> bool:
         '拉取视频'
