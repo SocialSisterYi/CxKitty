@@ -4,7 +4,8 @@ from utils import CONF_LOGPATH
 
 
 class Logger:
-    def __init__(self, name: str, level=logging.DEBUG, fmt=None):
+    '日志记录类'
+    def __init__(self, name: str, level=logging.DEBUG, fmt=None) -> None:
         if not CONF_LOGPATH.is_dir():
             CONF_LOGPATH.mkdir(parents=True)
         self.logger = logging.getLogger(name)
@@ -15,22 +16,23 @@ class Logger:
         else:
             self.fmt = fmt
     
-    def set_loginfo(self, phone):
+    def set_loginfo(self, phone) -> None:
+        '设置日志基本信息'
         self.phone = phone
         if not self.logger.handlers:
-            fh = logging.FileHandler(f'logs/cxkitty_{self.phone}.log', encoding='utf8')
+            fh = logging.FileHandler(CONF_LOGPATH / f'cxkitty_{self.phone}.log', encoding='utf8')
             fh.setLevel(self.level)
             fh.setFormatter(logging.Formatter(self.fmt))
             self.logger.addHandler(fh)
     
-    def debug(self, msg):
+    def debug(self, msg) -> None:
         self.logger.debug(msg)
     
-    def info(self, msg):
+    def info(self, msg) -> None:
         self.logger.info(msg)
         
-    def warning(self, msg):
+    def warning(self, msg) -> None:
         self.logger.warning(msg)
         
-    def error(self, msg, exc_info=False):
+    def error(self, msg, exc_info=False) -> None:
         self.logger.error(msg, exc_info=exc_info)

@@ -1,13 +1,14 @@
 import re
 import sys
 import time
+from typing import Iterator
 
 from qrcode import QRCode
 from rich.console import Console
 from rich.table import Table
 
 from cxapi.api import ChaoXingAPI
-from cxapi.classes import Classes
+from cxapi.classes import Classes, ClassSeqIter
 from utils import (CONF_MASKACC, SessionModule, __version__, ck2dict,
                    mask_name, mask_phone, save_session)
 
@@ -134,7 +135,7 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
                         continue
                 return
 
-def select_class(tui_ctx: Console, classes: Classes):
+def select_class(tui_ctx: Console, classes: Classes) -> Iterator:
     '交互-选择课程'
     tb = Table('序号', '课程名', '老师名', '课程id', '课程状态', title='所学的课程', border_style='blue')
     for index, cla in enumerate(classes.classes):
@@ -144,8 +145,11 @@ def select_class(tui_ctx: Console, classes: Classes):
         )
     while True:
         tui_ctx.print(tb)
-        inp = tui_ctx.input('请输入欲完成的课程序号, 输入q退出：')
+        inp = tui_ctx.input('请输入欲完成的课程 (序号/名称/id), 输入q退出：')
         if inp == 'q':
             sys.exit()
-        elif inp.isdigit():
-            return inp
+        else:
+            seq = ClassSeqIter(inp, classes)
+            if len(seq) == 0:
+                continue
+            return seq

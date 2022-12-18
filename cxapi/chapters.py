@@ -29,14 +29,16 @@ class ClassChapters:
     chapters: list[ChapterModel]
     # 课程参数
     courseid: int  # 课程 id
+    name: str  # 课程名
     clazzid: int  # 班级 id
     cpi: int
     
-    def __init__(self, session: requests.Session, acc: AccountInfo, courseid: int, clazzid: int, cpi: int, chapter_lst: list[dict]) -> None:
+    def __init__(self, session: requests.Session, acc: AccountInfo, courseid: int, name: str, clazzid: int, cpi: int, chapter_lst: list[dict]) -> None:
         self.session = session
         self.acc = acc
         self.courseid = courseid
         self.clazzid = clazzid
+        self.name = name
         self.cpi = cpi
         self.logger = Logger('Chapters')
         self.logger.set_loginfo(self.acc.phone)
@@ -55,6 +57,12 @@ class ClassChapters:
             in chapter_lst
         ]
         self.chapters.sort(key=lambda x: tuple(int(v) for v in x.label.split('.')))
+    
+    def __len__(self) -> int:
+        return len(self.chapters)
+    
+    def __repr__(self) -> str:
+        return f'<ClassChapters id={self.courseid} name={self.name} count={len(self)}>'
     
     def is_finished(self, index: int) -> bool:
         '判断当前章节的任务点是否全部完成'
@@ -86,7 +94,7 @@ class ClassChapters:
                 (chapter.name[:22] + '...' if wcswidth(chapter.name) > 25 else chapter.name) + '[/]' +
                 f'    ...任务点{chapter.point_finish}/{chapter.point_total}'
             )
-        tui_ctx.update(Panel('\n'.join(lines), title='课程列表', border_style='blue'))
+        tui_ctx.update(Panel('\n'.join(lines), title=f'《{self.name}》章节列表', border_style='blue'))
     
     def fetch_point_status(self):
         '拉取章节任务点状态'
@@ -196,3 +204,5 @@ class ClassChapters:
             f'[{self.chapters[index].label}:{self.chapters[index].name}(Id.{self.chapters[index].chapter_id})]'
         )
         return point_objs
+
+__all__ = ['ClassChapters']

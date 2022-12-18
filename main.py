@@ -105,7 +105,6 @@ def fuck_task_worker(chap: ClassChapters):
         time.sleep(5.0)
             
 if __name__ == '__main__':
-    
     api = ChaoXingAPI()
     dialog.logo(console)
     sessions = sessions_load()
@@ -126,9 +125,9 @@ if __name__ == '__main__':
     dialog.accinfo(console, api)
     try:
         classes = api.fetch_classes()  # 拉取该账号下所学的课程
-        inp = dialog.select_class(console, classes)  # 进行选择课程
-        chap = classes.fetch_chapters_by_index(int(inp))
-        fuck_task_worker(chap)
+        course_seq = dialog.select_class(console, classes)  # 进行课程选择
+        for chapter in course_seq:  # 迭代返回课程章节
+            fuck_task_worker(chapter)
     except Exception as err:
         console.print_exception(show_locals=False)
         api.logger.error('-----*程序运行异常退出*-----', exc_info=True)

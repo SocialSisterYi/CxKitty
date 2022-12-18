@@ -1,3 +1,5 @@
+import re
+from typing import Iterator, Optional
 
 import requests
 
@@ -38,8 +40,15 @@ class Classes:
                 teacher_name = c['content']['course']['data'][0]['teacherfactor']
             ))
     
+    def __len__(self) -> int:
+        '获取课程数'
+        return len(self.classes)
+    
+    def __repr__(self) -> str:
+        return f'<Classes count={len(self)}>'
+    
     def fetch_chapters_by_index(self, index: int) -> ClassChapters:
-        '拉取课程对应“章节”列表'
+        '拉取课程对应章节列表'
         resp = self.session.get(API_CHAPTER_LST, params={
             'id': self.classes[index].key,
             'personid': self.classes[index].cpi,
@@ -64,6 +73,65 @@ class Classes:
             acc=self.acc,
             courseid=self.classes[index].courseid,
             clazzid=self.classes[index].clazzid,
+            name=self.classes[index].name,
             cpi=self.classes[index].cpi,
             chapter_lst=content_json['data'][0]['course']['data'][0]['knowledge']['data']
         )
+
+class ClassSeqIter:
+    '课程批量序列迭代器'
+    __mached_index_nums: list[int]
+    __mached_index_iterator: Iterator
+    __classes: Classes
+    
+    def __init__(self, seq_str: str, classes: Classes) -> None:
+        temp = set()
+        self.__classes = classes
+        for seg in seq_str.split(','):
+            seg = seg.strip()
+            # 课程名
+            if r := re.match(r'^\"(?P<name>.*?)\"$', seg):
+                if (index := self.__name2index(r.group('name'))) is not None:
+                    temp.add(index)
+            # 索引范围
+            elif r := re.match(r'^(?P<start>\d+)-(?P<end>\d+)$', seg):
+                start = int(r.group('start'))
+                end = int(r.group('end'))
+                if end >= start:
+                    temp.update(range(start, end + 1))
+                else:
+                    temp.update(range(end, start + 1))
+            # 课程 id
+            elif r := re.match(r'^#(?P<id>\d+)$', seg):
+                if (index := self.__id2index(int(r.group('id')))) is not None:
+                    temp.add(index)
+            # 索引
+            elif r := re.match(r'^(?P<index>\d+)$', seg):
+                index = int(r.group('index'))
+                if index < len(self.__classes):
+                    temp.add(index)
+        self.__mached_index_nums = list(temp)
+        self.__mached_index_nums.sort()
+    
+    def __len__(self) -> int:
+        return len(self.__mached_index_nums)
+    
+    def __iter__(self) -> "ClassSeqIter":
+        self.__mached_index_iterator = iter(self.__mached_index_nums)
+        return self
+    
+    def __next__(self) -> ClassChapters:
+        curr_index = next(self.__mached_index_iterator)
+        return self.__classes.fetch_chapters_by_index(curr_index)
+    
+    def __id2index(self, cid: int) -> Optional[int]:
+        for i, c in enumerate(self.__classes.classes):
+            if c.courseid == cid:
+                return i
+    
+    def __name2index(self, name: str) -> Optional[int]:
+        for i, c in enumerate(self.__classes.classes):
+            if c.name.startswith(name):
+                return i
+
+__all__ = ['Classes', 'ClassSeqIter']
