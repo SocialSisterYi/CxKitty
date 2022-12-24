@@ -2,7 +2,7 @@ import difflib
 import json
 import sqlite3
 from pathlib import Path
-from typing import Literal, Union
+from typing import Literal, Union, Optional
 
 import jsonpath
 import requests
@@ -42,10 +42,12 @@ class RestAPISearcher(SearcherBase):
     url: str
     method: Literal['GET', 'POST']
     
-    def __init__(self, url, req_field: str, rsp_field: str, method: Literal['GET', 'POST']='POST') -> None:
+    def __init__(self, url, req_field: str, rsp_field: str, headers: Optional[dict]=None, method: Literal['GET', 'POST']='POST') -> None:
         self.session = requests.Session()
         self.url = url
         self.method = method
+        if headers:
+            self.session.headers.update(headers)
         super().__init__(req_field, rsp_field)
     
     def invoke(self, question_value: str) -> dict:

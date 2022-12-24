@@ -30,6 +30,8 @@ searcher:
     url: "http://127.0.0.1:88/v1/cx"  # API url
     method: "POST"  # 请求方式
     req_field: "question"  # 请求参数
+    headers:  # 自定义请求头(可选) 使用yaml的k-v语法填写
+      # eg: Authorization: 'xxx'
     rsp_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
   # 本地 JSON 数据库搜索器 (key为题, value为答案)
   jsonFileSearcher:
