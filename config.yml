@@ -1,12 +1,12 @@
 multiSession: true  # 是否开启多会话模式
 maskAcc: true  # 是否开启姓名手机号打码
-tUIMaxHeight: 20  # TUI 最大显示高度
+tUIMaxHeight: 25  # TUI 最大显示高度
 sessionPath: "session/"  # 会话存档路径
 logPath: "logs/"  # 日志文件路径
 
 # 视频
 video:
-  enable: false  # 是否执行任务
+  enable: true  # 是否执行任务
   speed: 1.0  # 播放速度
   wait: 15  # 完成等待时间
   report_rate: 58  # 视频播放汇报率 (没事别改)
@@ -15,22 +15,23 @@ video:
 exam:
   enable: true  # 是否执行任务
   wait: 15  # 完成等待时间
-  #fail_save: true  # 是否匹配失败自动保存 (未实现)
+  #fail_save: true  # TODO: 是否匹配失败自动保存
 
 # 文档
 document:
-  enable: false  # 是否执行任务
+  enable: true  # 是否执行任务
   wait: 15  # 完成等待时间
 
 # 搜索器
 searcher:
-  use: "restApiSearcher"  # 当前选择的搜索器
+  use: "jsonFileSearcher"  # 当前选择的搜索器 可用: restApiSearcher jsonFileSearcher sqliteSearcher
   # REST API 在线搜题
   restApiSearcher:
-    url: "http://cx.icodef.com/wyn-nb?v=4"  # API url
+    url: "http://127.0.0.1:88/v1/cx"  # API url
     method: "POST"  # 请求方式
-    req_field: "question" # 请求参数
-    headers: {'Authorization': 'JiJSgfUmtJMJZLdd'}   #请求头
+    req_field: "question"  # 请求参数
+    headers:  # 自定义请求头(可选) 使用yaml的k-v语法填写
+      # eg: Authorization: 'xxx'
     rsp_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
   # 本地 JSON 数据库搜索器 (key为题, value为答案)
   jsonFileSearcher:

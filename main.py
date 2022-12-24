@@ -45,7 +45,7 @@ def wait_for_class(tui_ctx: Layout, wait_sec: int, text: str):
     tui_ctx.unsplit()
     for i in range(wait_sec):
         tui_ctx.update(Panel(f'[green]{text}, 课间等待{i}/{wait_sec}s'))
-        time.sleep(0.1)
+        time.sleep(1.0)
 
 def fuck_task_worker(chap: ClassChapters):
     '完成任务点实现函数'
@@ -62,7 +62,7 @@ def fuck_task_worker(chap: ClassChapters):
                     f'忽略完成任务点 '
                     f'[{chap.chapters[index].label}:{chap.chapters[index].name}(Id.{chap.chapters[index].chapter_id})]'
                 )
-                time.sleep(1)  # 解决强迫症, 故意添加延时, 为展示滚屏效果
+                time.sleep(0.1)  # 解决强迫症, 故意添加延时, 为展示滚屏效果
                 continue
             for task_point in chap.fetch_points_by_index(index):  # 获取当前章节的所有任务点, 并遍历
                 # 预拉取任务点数据

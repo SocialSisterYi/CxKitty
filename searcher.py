@@ -2,7 +2,7 @@ import difflib
 import json
 import sqlite3
 from pathlib import Path
-from typing import Literal, Union
+from typing import Literal, Union, Optional
 
 import jsonpath
 import requests
@@ -28,7 +28,7 @@ class SearcherBase:
         >>> {
         >>>     'code': 1,  # 响应code 1为成功, 其他值为失败
         >>>     'data': '答案',
-        >>>     'Authorization': 'JiJSgfUmtJMJZLdd',
+        >>>     'Authorization': 'xxx',
         >>>     'question': '题目',
         >>>     'err': '错误信息'
         >>> },
@@ -43,11 +43,12 @@ class RestAPISearcher(SearcherBase):
     url: str
     method: Literal['GET', 'POST']
     
-    def __init__(self, url, req_field: str, rsp_field: str, headers, method: Literal['GET', 'POST']='POST') -> None:
+    def __init__(self, url, req_field: str, rsp_field: str, headers: Optional[dict]=None, method: Literal['GET', 'POST']='POST') -> None:
         self.session = requests.Session()
         self.url = url
         self.method = method
-        self.headers = headers
+        if headers:
+            self.session.headers.update(headers)
         super().__init__(req_field, rsp_field)
     
     def invoke(self, question_value: str) -> dict:
@@ -55,7 +56,7 @@ class RestAPISearcher(SearcherBase):
             if self.method == 'GET':
                 resp = self.session.get(self.url, params={self.req_field: question_value})
             elif self.method == 'POST':
-                resp = self.session.post(self.url,headers=self.headers, data={self.req_field: question_value})
+                resp = self.session.post(self.url, data={self.req_field: question_value})
             else:
                 raise TypeError
             resp.raise_for_status()
