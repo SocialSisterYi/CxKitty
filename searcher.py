@@ -28,7 +28,6 @@ class SearcherBase:
         >>> {
         >>>     'code': 1,  # 响应code 1为成功, 其他值为失败
         >>>     'data': '答案',
-        >>>     'Authorization': 'xxx',
         >>>     'question': '题目',
         >>>     'err': '错误信息'
         >>> },
