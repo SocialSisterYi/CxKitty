@@ -2,7 +2,6 @@ import difflib
 import json
 import re
 import time
-from typing import Any
 
 import requests
 from bs4 import BeautifulSoup
@@ -12,14 +11,33 @@ from rich.panel import Panel
 from rich.table import Table
 
 from logger import Logger
-from searcher import SearcherBase
+from searcher import SearcherBase, SearchResp
 
-from ..schema import AccountInfo, QuestionType, QuestionModel
+from ..schema import AccountInfo, QuestionModel, QuestionType
 
 API_EXAM_COMMIT = 'https://mooc1-api.chaoxing.com/work/addStudentWorkNew'        # 接口-单元测验答题提交
 PAGE_MOBILE_CHAPTER_CARD = 'https://mooc1-api.chaoxing.com/knowledge/cards'      # SSR页面-客户端章节任务卡片
 PAGE_MOBILE_EXAM = 'https://mooc1-api.chaoxing.com/android/mworkspecial'         # SSR页面-客户端单元测验答题页
 
+searcher_slot: list[SearcherBase] = []  # 搜索器槽位
+
+
+def add_searcher(searcher: SearcherBase):
+    '添加搜索器'
+    searcher_slot.append(searcher)
+
+def remove_searcher(searcher: SearcherBase):
+    '移除搜索器'
+    searcher_slot.remove(searcher)
+
+def invoke_searcher(question: str) -> list[SearchResp]:
+    '调用搜索器'
+    result = []
+    if searcher_slot:
+        for searcher in searcher_slot:
+            result.append(searcher.invoke(question))
+        return result
+    raise NotImplementedError('至少需要加载一个搜索器')
 
 def parse_question(question_node: BeautifulSoup):
     '解析题目'
@@ -71,8 +89,6 @@ class ChapterExam:
     enc_work: str
     # 答题参数
     questions: list[QuestionModel]
-    # 搜题器对象
-    searcher: SearcherBase
     # 施法参数
     need_jobid: bool
     
@@ -168,15 +184,14 @@ class ChapterExam:
         )
         return True
     
-    def __fill_answer(self, question: QuestionModel, search_resp: dict) -> bool:
+    def __fill_answer(self, question: QuestionModel, search_results: list[SearchResp]) -> bool:
         '查询并填充对应选项'
         log_suffix = f'[{question.value}(Id.{question.q_id})]'
         self.logger.debug(f'开始填充题目 {log_suffix}')
-        if search_resp.get('code') == 1:
-            if (r := self.searcher.rsp_query.parse(search_resp)):
-                search_answer: str = r[0].strip()
-            else:
-                return False  # JsonPath 选择器匹配失败返回
+        for result in search_results:  # 变量结果以适配多个搜索器
+            if result.code != 0 or result.answer is None:
+                continue
+            search_answer = result.answer.strip()
             match question.q_type:
                 case QuestionType.单选题:
                     for k, v in question.answers.items():
@@ -219,12 +234,8 @@ class ChapterExam:
                     self.logger.warning(f'未实现的题目类型 {question.q_type.name}/{question.q_type.value} {log_suffix}')
                     return False
         else:
-            self.logger.warning(f"题库接口响应码异常 errCode={search_resp.get('code')} {log_suffix}")
+            self.logger.warning(f"题目匹配失败 {log_suffix}")
             return False
-    
-    def mount_searcher(self, searcher_obj: Any) -> None:
-        '挂载搜题器对象'
-        self.searcher = searcher_obj
     
     def fill_and_commit(self, tui_ctx: Layout) -> None:
         '填充并提交试题 答题主逻辑'
@@ -239,32 +250,28 @@ class ChapterExam:
         tb.border_style = 'yellow'
         mistake_questions = []  # 答错题列表
         for question in self.questions:
-            try:
-                search_resp = self.searcher.invoke(question.value)  # 调用搜索器搜索方法
-            except Exception as err:
-                status = False
-                search_resp = ''
-                self.logger.warning(f'题库调用异常 err={err.__str__()}')
-                msg.update(Panel(
-                    err.__str__(),
-                    title='[red]题库接口异常',
-                    border_style='red'
-                ))
-            else:
-                self.logger.debug(f'题库调用成功 req={question.value} rsp={search_resp}')
-                msg.update(Panel(
-                    JSON.from_data(search_resp, ensure_ascii=False),
-                    title='题库接口返回'
-                ))
-                status = self.__fill_answer(question, search_resp)  # 填充选项
-                tb.add_row(
-                    str(question.q_id),
-                    question.q_type.name,
-                    question.value,
-                    (f'[green]{question.answer}' if status else '[red]未匹配')
-                )
+            results = invoke_searcher(question.value)  # 调用搜索器搜索方法
+            self.logger.debug(f'题库调用成功 req={question.value} rsp={results}')
+            msg.update(Panel(
+                '\n'.join(
+                    (
+                        f"[{'green' if result.code == 0 else 'red'}]"
+                        f"{result.searcher.__class__.__name__} -> "
+                        f"{'搜索成功' if result.code == 0 else f'搜索失败{result.code}:{result.message}'} -> "
+                        f"{result.answer}[/]"
+                    ) for result in results
+                ),
+                title='题库接口返回'
+            ))
+            status = self.__fill_answer(question, results)  # 填充选项
+            tb.add_row(
+                str(question.q_id),
+                question.q_type.name,
+                question.value,
+                (f'[green]{question.answer}' if status else '[red]未匹配')
+            )
             if status == False:
-                mistake_questions.append((question, self.searcher.rsp_query.parse(search_resp)))  # 记录错题
+                mistake_questions.append((question, '/'.join(str(result.answer) for result in results)))  # 记录错题
             time.sleep(1.0)
         # 没有错误
         if (mistake_num := len(mistake_questions)) == 0:

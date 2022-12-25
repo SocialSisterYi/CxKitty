@@ -6,7 +6,13 @@ from typing import Optional
 import yaml
 from cxapi.schema import AccountInfo
 
-__version__ = '0.2.4'
+__version__ = (
+    Path('pyproject.toml')
+    .read_text(encoding='utf8')
+    .split('version = ')[1]
+    .split('\n')[0]
+    .strip('"')
+)
 
 CONF: dict = yaml.load(open('config.yml', 'r', encoding='utf8') , yaml.FullLoader)
 CONF_SESSPATH = Path(CONF['sessionPath'])  # 会话存档路径

@@ -115,7 +115,7 @@ class ChaoXingAPI:
         self.acc = AccountInfo(
             puid=json_content['msg']['puid'],
             name=json_content['msg']['name'],
-            sex=['女', '男'][json_content['msg']['sex']],
+            sex=('女', '男')[json_content['msg']['sex']],
             phone=json_content['msg']['phone'],
             school=json_content['msg']['schoolname'],
             stu_id=json_content['msg'].get('uname')  # 容许不存在学号的情况

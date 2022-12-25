@@ -5,15 +5,17 @@
     <img alt="Github Forks" src="https://img.shields.io/github/forks/SocialSisterYi/CxKitty">
     <img alt="Lines of code" src="https://img.shields.io/tokei/lines/github/SocialSisterYi/CxKitty">
     <img alt="Github License" src="https://img.shields.io/github/license/SocialSisterYi/CxKitty">
+    <img alt="Image Size" src="https://img.shields.io/docker/image-size/socialsisteryi/cx-kitty">
 </div>
+
 
 本项目旨在研究学习爬虫技术和网络接口编程技术，同时致力于以开源方式抵制并消灭各种付费“刷课平台”和“黑产”
 
 效果演示视频 https://www.bilibili.com/video/BV1yt4y1P7NF
 
-## Features
+## ✨Features
 
-### 支持的功能
+### Supports
 
 - ✅支持手机号+密码登录、二维码登录, 自动判断账号 ck 有效性, 自动 + 手动重登账号
 - ✅自带多会话管理器，自动获取用户信息，以 json 格式存档在本地
@@ -23,11 +25,11 @@
 - ✅视频课程任务点模拟播放（无需消耗流量播放流媒体内容）
 - ✅文档任务点模拟浏览（如 word ppt pdf 等）
 - ✅章节测验任务点自动答题，支持单选题、多选题、判断题
-- ✅支持`REST API`、`JSON`、`SQLite`三种类型的题库
+- ✅支持`REST API`、`JSON`、`SQLite`三种类型的题库，现以接入`Enncy`一种第三方题库
 - ✅`REST API`类型（在线题库接口）支持使用 JsonPath 语法进行答案字段提取，并提供自定义 HTTP header 选项
 - ✅记录详细的运行日志及未完成的题目至日志文件
 
-### 暂不支持的功能
+### TODO
 
 以下特性有可能逐渐被添加
 
@@ -36,19 +38,30 @@
 - ❌保存未完成的章节测验任务点
 - ❌多题库搜索器实例混用及负载均衡
 - ❌章节测验任务点之填空题、简答题、论述题等
+- ❌富文本答题
 
-### 已知存在 BUG 的功能
+### BUGS
 
 - ⭕获取任务点状态会出现 `0/0`的情况 (即使任务点存在未做)
 - ⭕对于选项为图片的题目无法匹配
 
-## Typographical
+## ❤️Contributing Guide
+
+若发现程序存在任何 bug 或有好的想法，欢迎提交 Issue，提交 bug 反馈时需要带上报错信息截图（截全）以及对应 log 文件，并说明触发条件
+
+如果有能力一同开发项目，欢迎使用 [PR](https://github.com/SocialSisterYi/CxKitty/pulls) 提交代码（注意合并 Origin 和修改内容
+
+提交 Issue 时应当遵守 **[提问的智慧](https://github.com/tangx/Stop-Ask-Questions-The-Stupid-Ways)** ，切勿以`不懂`、`萌新问个问题`、`小白啥也不会浇浇`、`整个xxx呗`作为标题，否则一律忽略
+
+[Issue](https://github.com/SocialSisterYi/CxKitty/issues) 为本项目的唯一反馈渠道，任何包括不限于在 QQ、B站私信、Telegram、微信 的提问一律忽略
+
+## 🧩Typographical
 
 ![](imgs/typo.png)
 
-## Build Repo
+## 🚀Build Repo
 
-### 本地化构建项目
+### 💻本地化构建项目
 
 使用 Python 版本 >= 3.10.0
 
@@ -66,15 +79,28 @@ poetry install
 poetry run python3 main.py
 ```
 
-### 使用  Docker  构建项目
+### 🐋使用  Docker  构建项目
 
-clone 项目到本地，并开始构建 Docker 镜像
+从 DockerHub 拉取最新镜像
+
+```bash
+docker pull socialsisteryi/cx-kitty
+```
+
+~~或手动构建镜像~~
+
+<details>
+<summary>展开</summary>
+
+clone 项目到本地，并开始构建镜像
 
 ```bash
 git clone 'https://github.com/SocialSisterYi/CxKitty'
 cd CxKitty
-docker build --tag cx_kitty .
+docker build --tag socialsisteryi/cx-kitty .
 ```
+
+</details>
 
 运行容器
 
@@ -98,10 +124,10 @@ docker run -it \
   -v "$PWD/config.yml:/app/config.yml" \
   #-v "$PWD/questions.json:/app/questions.json" \
   #-v "$PWD/questions.db:/app/questions.db" \
-  cx_kitty
+  socialsisteryi/cx-kitty
 ```
 
-## Configuration
+## 🔨Configuration
 
 ### 主程序配置
 
@@ -155,7 +181,11 @@ SELECT answer FROM questions WHERE question = '国字的演变的过程告诉我
 国家
 ```
 
-## Usage & Demo
+Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第三方题库）
+
+主页链接 https://tk.enncy.cn/
+
+## 📖Usage & Demo
 
 **注：本项目非“开箱即用”，如需使用自动答题功能，请确保拥有准确无误的题库资源**
 
@@ -182,7 +212,7 @@ SELECT answer FROM questions WHERE question = '国字的演变的过程告诉我
 
 ![](imgs/demo3.png)
 
-## About Repo Name
+## 💡About Repo Name
 
 项目的中文名`超星学习通答题姬`早已确定，英文名想到过`CxHime`、`CxExamHime`、`CxCourseHime`然而都非常拗口，故弃用
 
@@ -190,13 +220,13 @@ SELECT answer FROM questions WHERE question = '国字的演变的过程告诉我
 
 最后由`CxKit`衍生出`CxKitty`这个名，一语双关`kitty`自有“猫娘”含义，~~同时由于项目首字母缩写是`cxk`，亦可解释为`答题只因`~~
 
-## Disclaimers
+## ⚠️Disclaimers
 
 - 本项目以 [GPL-3.0 License](https://github.com/SocialSisterYi/CxKitty/blob/main/LICENSE) 作为开源协议，这意味着你需要遵守相应的规则
 - 本项目仅适用于**学习研究**，任何人不得以此用于**盈利**
 - 使用本项目造成的任何后果与本人无关
 
-## Link Repos
+## 🔗Link Repos
 
 [Samueli924/chaoxing: 超星学习通/超星尔雅/泛雅超星全自动无人值守完成任务点 (github.com)](https://github.com/Samueli924/chaoxing)
 
@@ -209,3 +239,5 @@ SELECT answer FROM questions WHERE question = '国字的演变的过程告诉我
 [ocsjs/ocsjs: OCS 网课助手，网课脚本，帮助大学生解决网课难题 ，目前支持网课：超星学习通，知道智慧树 ， 支持脚本猫以及油猴脚本运行。 (github.com)](https://github.com/ocsjs/ocsjs)
 
 [SocialSisterYi/xuexiaoyi-to-xuexitong-tampermonkey-proxy: 基于“学小易”搜题API的学习通答题/考试油猴脚本题库代理 (github.com)](https://github.com/SocialSisterYi/xuexiaoyi-to-xuexitong-tampermonkey-proxy)
+
+[CodFrm/cxmooc-tools: 一个 超星(学习通)/智慧树(知到)/中国大学mooc 学习工具,火狐,谷歌,油猴支持.全自动任务,视频倍速秒过,作业考试题库,验证码自动打码(੧ᐛ੭挂科模式,启动) (github.com)](https://github.com/CodFrm/cxmooc-tools)

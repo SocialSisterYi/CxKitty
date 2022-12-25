@@ -24,14 +24,16 @@ document:
 
 # 搜索器
 searcher:
-  use: "jsonFileSearcher"  # 当前选择的搜索器 可用: restApiSearcher jsonFileSearcher sqliteSearcher
+  use: "jsonFileSearcher"  # 当前选择的搜索器 可用: restApiSearcher jsonFileSearcher sqliteSearcher enncySearcher
   # REST API 在线搜题
   restApiSearcher:
     url: "http://127.0.0.1:88/v1/cx"  # API url
     method: "POST"  # 请求方式
     req_field: "question"  # 请求参数
-    headers:  # 自定义请求头(可选) 使用yaml的k-v语法填写
+    headers:  # 自定义请求头(可选) 使用 yaml 的 k-v 语法填写
       # eg: Authorization: 'xxx'
+    ext_params: # 自定义扩展请求参数(可选) 使用 yaml 的 k-v 语法填写
+      # eg: Token: 'xxx'
     rsp_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
   # 本地 JSON 数据库搜索器 (key为题, value为答案)
   jsonFileSearcher:
@@ -42,3 +44,6 @@ searcher:
     table: "question"  # 表名
     req_field: "question"  # 请求字段
     rsp_field: "answer"  # 返回字段
+  # Enncy 题库搜索器，使用前请注册 https://tk.enncy.cn/
+  enncySearcher:
+    token: "xxx"  # Enncy 题库 Token

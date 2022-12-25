@@ -1,10 +1,12 @@
 [tool.poetry]
 name = "CxKitty"
-version = "0.2.4"
+version = "0.2.5"
 description = "超星学习通答题姬"
-authors = ["SocialSisterYi"]
 license = "GPL-3.0"
+authors = ["SocialSisterYi <1440239038@qq.com>"]
 readme = "README.md"
+repository = "https://github.com/SocialSisterYi/CxKitty"
+
 
 [[tool.poetry.source]]
 name = "tsinghua"

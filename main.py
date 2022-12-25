@@ -12,9 +12,10 @@ import dialog
 from cxapi.api import ChaoXingAPI
 from cxapi.chapters import ClassChapters
 from cxapi.jobs.document import ChapterDocument
-from cxapi.jobs.exam import ChapterExam
+from cxapi.jobs.exam import ChapterExam, add_searcher
 from cxapi.jobs.video import ChapterVideo
-from searcher import JsonFileSearcher, RestAPISearcher, SqliteSearcher
+from searcher import (EnncySearcher, JsonFileSearcher, RestAPISearcher,
+                      SqliteSearcher)
 from utils import (CONF_EN_DOCUMENT, CONF_EN_EXAM, CONF_EN_VIDEO,
                    CONF_MULTI_SESS, CONF_SEARCHER, CONF_TUI_MAX_HEIGHT,
                    CONF_VIDEO, CONF_WAIT_DOCUMENT, CONF_WAIT_EXAM,
@@ -37,8 +38,11 @@ if CONF_EN_EXAM:
             searcher = JsonFileSearcher(**CONF_SEARCHER['jsonFileSearcher'])
         case 'sqliteSearcher':
             searcher = SqliteSearcher(**CONF_SEARCHER['sqliteSearcher'])
+        case 'enncySearcher':
+            searcher = EnncySearcher(**CONF_SEARCHER['enncySearcher'])
         case _:
             raise TypeError('不合法的搜索器类型')
+    add_searcher(searcher)
 
 def wait_for_class(tui_ctx: Layout, wait_sec: int, text: str):
     '课间等待, 防止风控'
@@ -79,7 +83,6 @@ def fuck_task_worker(chap: ClassChapters):
                 
                 # 试题类型
                 if isinstance(task_point, ChapterExam) and CONF_EN_EXAM:
-                    task_point.mount_searcher(searcher)
                     task_point.fill_and_commit(lay_main)
                     # 开始等待
                     wait_for_class(lay_main, CONF_WAIT_EXAM, f'试题《{task_point.title}》已结束')

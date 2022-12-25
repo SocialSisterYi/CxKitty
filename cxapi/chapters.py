@@ -1,5 +1,5 @@
 import json
-from typing import TypeVar
+from typing import Union
 
 import requests
 from bs4 import BeautifulSoup
@@ -15,7 +15,7 @@ from .jobs.exam import ChapterExam
 from .jobs.video import ChapterVideo
 from .schema import AccountInfo, ChapterModel
 
-TaskPointType = TypeVar('TaskPointType', ChapterExam, ChapterVideo, ChapterDocument)
+TaskPointType = Union[ChapterExam, ChapterVideo, ChapterDocument]
 
 API_CHAPTER_POINT = 'https://mooc1-api.chaoxing.com/job/myjobsnodesmap'          # 接口-课程章节任务点状态
 API_CHAPTER_CARDS = 'https://mooc1-api.chaoxing.com/gas/knowledge'               # 接口-课程章节卡片
