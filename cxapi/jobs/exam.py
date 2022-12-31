@@ -92,7 +92,7 @@ class ChapterExam:
     # 施法参数
     need_jobid: bool
     
-    def __init__(self, session: requests.Session, acc: AccountInfo, card_index: int, courseid: int, workid: str, jobid: str, knowledgeid: int, clazzid: int, cpi: int, point_index: int) -> None:
+    def __init__(self, session: requests.Session, acc: AccountInfo, card_index: int, courseid: int, workid: str, jobid: str, knowledgeid: int, clazzid: int, cpi: int) -> None:
         self.session = session
         self.acc = acc
         self.card_index = card_index
@@ -102,7 +102,6 @@ class ChapterExam:
         self.knowledgeid = knowledgeid
         self.clazzid = clazzid
         self.cpi = cpi
-        self.point_index = point_index
         self.logger = Logger('PointExam')
         self.logger.set_loginfo(self.acc.phone)
     
@@ -125,9 +124,17 @@ class ChapterExam:
             else:
                 raise ValueError
             self.logger.debug(f'attachment: {attachment}')
+            # 定位资源workid
+            for point in attachment['attachments']:
+                if prop := point.get('property'):
+                    if prop.get('workid') == self.workid:
+                        break
+            else:
+                self.logger.warning('定位任务资源失败')
+                return False
             self.ktoken = attachment['defaults']['ktoken']
-            self.enc = attachment['attachments'][self.point_index]['enc']
-            if (job := attachment['attachments'][self.point_index].get('job')) is not None:
+            self.enc = point['enc']
+            if (job := point.get('job')) is not None:
                 needtodo = job in (True, None)  # 这里有部分试题不存在`job`字段
                 self.need_jobid = True  # 不知道为什么这里的`job`字段和请求试题的接口的`jobid`参数有关
             else:

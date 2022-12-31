@@ -26,7 +26,6 @@ class ChapterDocument:
     courseid: int
     knowledgeid: int
     card_index: int  # 卡片索引位置
-    point_index: int  # 任务点索引位置
     cpi: int
     # 文档参数
     objectid: str
@@ -34,7 +33,7 @@ class ChapterDocument:
     title: str
     jtoken: str
     
-    def __init__(self, session: requests.Session, acc: AccountInfo, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int, point_index: int) -> None:
+    def __init__(self, session: requests.Session, acc: AccountInfo, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int) -> None:
         self.session = session
         self.acc = acc
         self.clazzid = clazzid
@@ -43,7 +42,6 @@ class ChapterDocument:
         self.card_index = card_index
         self.objectid = objectid
         self.cpi = cpi
-        self.point_index = point_index
         self.logger = Logger('PointDocument')
         self.logger.set_loginfo(self.acc.phone)
     
@@ -66,10 +64,18 @@ class ChapterDocument:
             else:
                 raise ValueError
             self.logger.debug(f'attachment: {attachment}')
-            if attachment['attachments'][self.point_index].get('job') == True:  # 这里需要忽略非任务点文档
-                self.title = attachment['attachments'][self.point_index]['property']['name']
-                self.jobid = attachment['attachments'][self.point_index]['jobid']
-                self.jtoken = attachment['attachments'][self.point_index]['jtoken']
+            # 定位资源objectid
+            for point in attachment['attachments']:
+                if prop := point.get('property'):
+                    if prop.get('objectid') == self.objectid:
+                        break
+            else:
+                self.logger.warning('定位任务资源失败')
+                return False
+            if point.get('job') == True:  # 这里需要忽略非任务点文档
+                self.title = point['property']['name']
+                self.jobid = point['jobid']
+                self.jtoken = point['jtoken']
                 self.logger.info('预拉取成功')
                 return True
             self.logger.info(f'不存在任务已忽略')

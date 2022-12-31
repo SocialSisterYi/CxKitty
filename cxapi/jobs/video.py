@@ -31,7 +31,6 @@ class ChapterVideo:
     courseid: int
     knowledgeid: int
     card_index: int  # 卡片索引位置
-    point_index: int  # 任务点索引位置
     cpi: int
     # 视频参数
     objectid: str
@@ -43,7 +42,7 @@ class ChapterVideo:
     title: str
     rt: float
     
-    def __init__(self, session: requests.Session, acc: AccountInfo, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int, point_index: int) -> None:
+    def __init__(self, session: requests.Session, acc: AccountInfo, clazzid: int, courseid: int, knowledgeid: int, card_index: int, objectid: str, cpi: int) -> None:
         self.session = session
         self.acc = acc
         self.clazzid = clazzid
@@ -52,7 +51,6 @@ class ChapterVideo:
         self.card_index = card_index
         self.objectid = objectid
         self.cpi = cpi
-        self.point_index = point_index
         self.logger = Logger('PointVideo')
         self.logger.set_loginfo(self.acc.phone)
     
@@ -76,12 +74,20 @@ class ChapterVideo:
                 raise ValueError
             self.logger.debug(f'attachment: {attachment}')
             self.fid = attachment['defaults']['fid']
-            if jobid := attachment['attachments'][self.point_index].get('jobid'):
+            # 定位资源objectid
+            for point in attachment['attachments']:
+                if prop := point.get('property'):
+                    if prop.get('objectid') == self.objectid:
+                        break
+            else:
+                self.logger.warning('定位任务资源失败')
+                return False
+            if jobid := point.get('jobid'):
                 self.jobid = jobid
-                self.otherInfo = attachment['attachments'][self.point_index]['otherInfo']
-                self.rt = float(attachment['attachments'][self.point_index]['property'].get('rt', 0.9))
+                self.otherInfo = point['otherInfo']
+                self.rt = float(point['property'].get('rt', 0.9))
                 self.logger.info('预拉取成功')
-                return attachment['attachments'][self.point_index].get('isPassed') in (False, None)  # 判断是否已完成
+                return point.get('isPassed') in (False, None)  # 判断是否已完成
             self.logger.info(f'不存在任务已忽略')
             return False  # 非任务点视频不需要完成
         except Exception:
