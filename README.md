@@ -5,11 +5,14 @@
     <img alt="Github Forks" src="https://img.shields.io/github/forks/SocialSisterYi/CxKitty">
     <img alt="Lines of code" src="https://img.shields.io/tokei/lines/github/SocialSisterYi/CxKitty">
     <img alt="Github License" src="https://img.shields.io/github/license/SocialSisterYi/CxKitty">
+    <img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg">
     <img alt="Image Size" src="https://img.shields.io/docker/image-size/socialsisteryi/cx-kitty">
 </div>
 
 
 本项目旨在研究学习爬虫技术和网络接口编程技术，同时致力于以开源方式抵制并消灭各种付费“刷课平台”和“黑产”
+
+<span style="color: red"><b>Ps: 本项目不提供任何题库资源，有相关测试需求者请按照文档自行解决。本项目仅供学习参考使用，请在下载部署后24小时内删除，由于使用本项目不当所造成的挂科或不良学习记录作者一概不负责。</b></span>
 
 效果演示视频 https://www.bilibili.com/video/BV1yt4y1P7NF
 
@@ -20,12 +23,12 @@
 - ✅支持手机号+密码登录、二维码登录, 自动判断账号 ck 有效性, 自动 + 手动重登账号
 - ✅自带多会话管理器，自动获取用户信息，以 json 格式存档在本地
 - ✅Terminal-UI 方式进行人机交互，及展示任务进程、任务点完成状态
-- ✅使用[requests](https://github.com/psf/requests)及[bs4](https://www.crummy.com/software/BeautifulSoup/)分别进行协议模拟和 HTML 解析，故无需浏览器
+- ✅使用 [requests](https://github.com/psf/requests) 及 [bs4](https://www.crummy.com/software/BeautifulSoup/) 分别进行协议模拟和 HTML 解析，故无需浏览器
 - ✅支持批量选择课程（使用序号/courseId/课程名）
 - ✅视频课程任务点模拟播放（无需消耗流量播放流媒体内容）
 - ✅文档任务点模拟浏览（如 word ppt pdf 等）
 - ✅章节测验任务点自动答题，支持单选题、多选题、判断题
-- ✅支持`REST API`、`JSON`、`SQLite`三种类型的题库，现以接入`Enncy`一种第三方题库
+- ✅支持`REST API`、`JSON`、`SQLite`三种类型的题库，可并行搜索优选答案，现已接入`Enncy`一种第三方题库
 - ✅`REST API`类型（在线题库接口）支持使用 JsonPath 语法进行答案字段提取，并提供自定义 HTTP header 选项
 - ✅记录详细的运行日志及未完成的题目至日志文件
 
@@ -51,7 +54,7 @@
 
 如果有能力一同开发项目，欢迎使用 [PR](https://github.com/SocialSisterYi/CxKitty/pulls) 提交代码（注意合并 Origin 和修改内容
 
-提交 Issue 时应当遵守 **[提问的智慧](https://github.com/tangx/Stop-Ask-Questions-The-Stupid-Ways)** ，切勿以`不懂`、`萌新问个问题`、`小白啥也不会浇浇`、`整个xxx呗`作为标题，否则一律忽略
+提交 Issue 时应当遵守 **[提问的智慧](https://github.com/ryanhanwu/How-To-Ask-Questions-The-Smart-Way/blob/main/README-zh_CN.md)** 以及[别像弱智一样提问](https://github.com/tangx/Stop-Ask-Questions-The-Stupid-Ways)，切勿以`不懂`、`萌新问个问题`、`小白啥也不会浇浇`、`整个xxx呗`作为标题，否则一律忽略
 
 [Issue](https://github.com/SocialSisterYi/CxKitty/issues) 为本项目的唯一反馈渠道，任何包括不限于在 QQ、B站私信、Telegram、微信 的提问一律忽略
 

@@ -1,49 +1,74 @@
-multiSession: true  # 是否开启多会话模式
-maskAcc: true  # 是否开启姓名手机号打码
-tUIMaxHeight: 25  # TUI 最大显示高度
-sessionPath: "session/"  # 会话存档路径
-logPath: "logs/"  # 日志文件路径
+# 基本配置
 
+# 是否开启多会话模式
+multiSession: true
+# 是否开启姓名手机号打码
+maskAcc: true
+# TUI 最大显示高度
+tUIMaxHeight: 25
+# 会话存档路径
+sessionPath: "session/"
+# 日志文件路径
+logPath: "logs/"
+
+# --------------------
+
+# 任务执行器配置
 # 视频
 video:
-  enable: true  # 是否执行任务
-  speed: 1.0  # 播放速度
-  wait: 15  # 完成等待时间
-  report_rate: 58  # 视频播放汇报率 (没事别改)
+  # 使能
+  enable: true  
+  # 完成等待时间
+  wait: 15
+  # 倍速
+  speed: 1.0
+  # 视频播放汇报率 (没事别改)
+  report_rate: 58
+  
 
 # 试题
 exam:
-  enable: true  # 是否执行任务
-  wait: 15  # 完成等待时间
-  #fail_save: true  # TODO: 是否匹配失败自动保存
+  # 使能
+  enable: true
+  # 完成等待时间
+  wait: 15
+  # TODO: 是否匹配失败自动保存
+  # fail_save: true
 
 # 文档
 document:
-  enable: true  # 是否执行任务
-  wait: 15  # 完成等待时间
+  # 使能
+  enable: true
+  # 完成等待时间
+  wait: 15
 
-# 搜索器
-searcher:
-  use: "jsonFileSearcher"  # 当前选择的搜索器 可用: restApiSearcher jsonFileSearcher sqliteSearcher enncySearcher
-  # REST API 在线搜题
-  restApiSearcher:
-    url: "http://127.0.0.1:88/v1/cx"  # API url
-    method: "POST"  # 请求方式
-    req_field: "question"  # 请求参数
-    headers:  # 自定义请求头(可选) 使用 yaml 的 k-v 语法填写
-      # eg: Authorization: 'xxx'
-    ext_params: # 自定义扩展请求参数(可选) 使用 yaml 的 k-v 语法填写
-      # eg: Token: 'xxx'
-    rsp_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
+# --------------------
+
+# 搜索器选择 (可同时使用多个搜索器, 以 yaml 语法中 list 格式添加, `type`字段决定搜索器类型)
+# 可用的搜索器有: restApiSearcher jsonFileSearcher sqliteSearcher enncySearcher
+searchers:
   # 本地 JSON 数据库搜索器 (key为题, value为答案)
-  jsonFileSearcher:
+  - type: jsonFileSearcher
     file_path: "questions.json"  # 数据库文件路径
+
+  # REST API 在线搜题
+  # - type: restApiSearcher
+  #   url: "http://127.0.0.1:88/v1/cx"  # API url
+  #   method: "POST"  # 请求方式
+  #   req_field: "question"  # 请求参数
+  #   headers:  # 自定义请求头(可选) 使用 yaml 的 k-v 语法填写
+  #     # eg: Authorization: 'xxx'
+  #   ext_params: # 自定义扩展请求参数(可选) 使用 yaml 的 k-v 语法填写
+  #     # eg: Token: 'xxx'
+  #   rsp_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
+  
   # 本地 sqlite 数据库搜索器
-  sqliteSearcher:
-    file_path: "questions.db"  # 数据库文件路径
-    table: "question"  # 表名
-    req_field: "question"  # 请求字段
-    rsp_field: "answer"  # 返回字段
+  # - type: sqliteSearcher
+  #   file_path: "questions.db"  # 数据库文件路径
+  #   table: "question"  # 表名
+  #   req_field: "question"  # 请求字段
+  #   rsp_field: "answer"  # 返回字段
+
   # Enncy 题库搜索器，使用前请注册 https://tk.enncy.cn/
-  enncySearcher:
-    token: "xxx"  # Enncy 题库 Token
+  # - type: enncySearcher
+  #   token: "xxx"  # Enncy 题库 Token
