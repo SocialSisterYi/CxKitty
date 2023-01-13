@@ -42,7 +42,7 @@ class SearcherBase:
         raise NotImplementedError
 
 
-class RestAPISearcher(SearcherBase):
+class RestApiSearcher(SearcherBase):
     "REST API 在线搜索器"
     session: requests.Session
     req_field: str
@@ -94,7 +94,7 @@ class RestAPISearcher(SearcherBase):
             return SearchResp(-500, err.__str__(), self, question_value, None)
 
 
-class EnncySearcher(RestAPISearcher):
+class EnncySearcher(RestApiSearcher):
     "Enncy 题库搜索器"
 
     def __init__(self, token: str) -> None:
@@ -173,7 +173,7 @@ class SqliteSearcher(SearcherBase):
 
 __all__ = [
     "SearcherBase",
-    "RestAPISearcher",
+    "RestApiSearcher",
     "JsonFileSearcher",
     "SqliteSearcher",
     "EnncySearcher",

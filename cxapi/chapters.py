@@ -164,8 +164,10 @@ class ClassChapters:
             f"[{self.chapters[index].label}:{self.chapters[index].name}(Id.{self.chapters[index].chapter_id})]"
         )
         point_objs = []  # 任务点实例化列表
-        for card_index, card in enumerate(cards):  # 遍历章节卡片
-            if card["description"] == "":
+        # 遍历章节卡片
+        for card_index, card in enumerate(cards):
+            # 保护措施, 一些章节卡片不存在任务点 iframe 内容, 如纯文字 图片等, 故跳过
+            if not card.get("description"):
                 self.logger.warning(f"({card_index}) 卡片 iframe 不存在 {card}")
                 continue
             inline_html = BeautifulSoup(card["description"], "lxml")
