@@ -460,7 +460,7 @@ class ChapterExam:
         )
         resp.raise_for_status()
         json_content = resp.json()
-        self.logger.debug(f"试题提交 resp: {json_content}")
+        self.logger.debug(f"试题保存 resp: {json_content}")
         return json_content
 
 
