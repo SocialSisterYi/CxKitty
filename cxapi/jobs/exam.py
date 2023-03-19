@@ -235,9 +235,6 @@ class ChapterExam:
                             question.answer = k
                             self.logger.debug(f"单选题命中 {k}={v} {log_suffix}")
                             return True
-                    else:
-                        self.logger.warning(f"单选题填充失败 {log_suffix}")
-                        return False
                 case QuestionType.判断题:
                     if re.search(r"(错|否|错误|false|×)", search_answer):
                         question.answer = "false"
@@ -247,9 +244,6 @@ class ChapterExam:
                         question.answer = "true"
                         self.logger.debug(f"判断题命中 false {log_suffix}")
                         return True
-                    else:
-                        self.logger.warning(f"判断题填充失败 {log_suffix}")
-                        return False
                 case QuestionType.多选题:
                     option_lst = []
                     if len(part_answer_lst := search_answer.split("#")) <= 1:
@@ -265,16 +259,18 @@ class ChapterExam:
                         question.answer = "".join(option_lst)
                         self.logger.debug(f"多选题最终选项 {question.answer}")
                         return True
-                    self.logger.warning(f"多选题填充失败 {log_suffix}")
-                    return False
-                case _:
-                    self.logger.warning(
-                        f"未实现的题目类型 {question.q_type.name}/{question.q_type.value} {log_suffix}"
-                    )
-                    return False
-        else:
-            self.logger.warning(f"题目匹配失败 {log_suffix}")
-            return False
+        match question.q_type:
+            case QuestionType.单选题:
+                self.logger.warning(f"单选题填充失败 {log_suffix}")
+            case QuestionType.判断题:
+                self.logger.warning(f"判断题填充失败 {log_suffix}")
+            case QuestionType.多选题:
+                self.logger.warning(f"多选题填充失败 {log_suffix}")
+            case _:
+                self.logger.warning(
+                    f"未实现的题目类型 {question.q_type.name}/{question.q_type.value} {log_suffix}"
+                )
+        return False
 
     def fill_and_commit(self, tui_ctx: Layout) -> None:
         "填充并提交试题 答题主逻辑"
