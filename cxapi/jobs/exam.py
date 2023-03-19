@@ -101,16 +101,16 @@ class ChapterExam:
     need_jobid: bool
 
     def __init__(
-        self,
-        session: requests.Session,
-        acc: AccountInfo,
-        card_index: int,
-        courseid: int,
-        workid: str,
-        jobid: str,
-        knowledgeid: int,
-        clazzid: int,
-        cpi: int,
+            self,
+            session: requests.Session,
+            acc: AccountInfo,
+            card_index: int,
+            courseid: int,
+            workid: str,
+            jobid: str,
+            knowledgeid: int,
+            clazzid: int,
+            cpi: int,
     ) -> None:
         self.session = session
         self.acc = acc
@@ -142,8 +142,8 @@ class ChapterExam:
         html = BeautifulSoup(resp.text, "lxml")
         try:
             if r := re.search(
-                r"window\.AttachmentSetting *= *(.+?);",
-                html.head.find("script", type="text/javascript").text,
+                    r"window\.AttachmentSetting *= *(.+?);",
+                    html.head.find("script", type="text/javascript").text,
             ):
                 attachment = json.loads(r.group(1))
             else:
@@ -346,19 +346,26 @@ class ChapterExam:
                 + "--------------------\n"
                 + "\n".join(
                     (
-                        f"{i}.\tq({q.q_type.name}/{q.q_type.value}): {q.value} "
-                        + (
-                            f"\n\to: {' '.join(f'{k}={v}' for k, v in q.answers.items())}"
-                            if q.q_type in (QuestionType.单选题, QuestionType.多选题)
-                            else ""
-                        )
-                        + f"\n\ta: {a}"
+                            f"{i}.\tq({q.q_type.name}/{q.q_type.value}): {q.value} "
+                            + (
+                                f"\n\to: {' '.join(f'{k}={v}' for k, v in q.answers.items())}"
+                                if q.q_type in (QuestionType.单选题, QuestionType.多选题)
+                                else ""
+                            )
+                            + f"\n\ta: {a}"
                     )
                     for i, (q, a) in enumerate(mistake_questions, 1)
                 )
                 + "\n--------------------"
             )
-            # TODO: 答题失败提交保存
+            save_result = self.__save()
+            j = JSON.from_data(save_result, ensure_ascii=False)
+            if save_result["status"] == True:
+                self.logger.info(f"试题保存成功 " f"[{self.title}(J.{self.jobid}/W.{self.workid})]")
+                msg.update(Panel(j, title="保存成功 TAT！", border_style="green"))
+            else:
+                self.logger.warning(f"保存提交失败 " f"[{self.title}(J.{self.jobid}/W.{self.workid})]")
+                msg.update(Panel(j, title="保存失败！", border_style="red"))
         time.sleep(5.0)
 
     def __mk_answer_reqdata(self) -> dict[str, str]:
@@ -389,6 +396,49 @@ class ChapterExam:
             },
             data={
                 "pyFlag": "",
+                "courseId": self.courseid,
+                "classId": self.clazzid,
+                "api": 1,
+                "mooc": 0,
+                "workAnswerId": self.workAnswerId,
+                "totalQuestionNum": self.totalQuestionNum,
+                "fullScore": self.fullScore,
+                "knowledgeid": self.knowledgeid,
+                "oldSchoolId": "",
+                "oldWorkId": self.workid,
+                "jobid": self.jobid,
+                "workRelationId": self.workRelationId,
+                "enc_work": self.enc_work,
+                "isphone": "true",
+                "userId": self.acc.puid,
+                "workTimesEnc": "",
+                **answer_data,
+            },
+        )
+        resp.raise_for_status()
+        json_content = resp.json()
+        self.logger.debug(f"试题提交 resp: {json_content}")
+        return json_content
+
+    def __save(self) -> dict:
+        "保存答题信息"
+        answer_data = self.__mk_answer_reqdata()
+        self.logger.debug(f"试题保存 payload: {answer_data}")
+        resp = self.session.post(
+            API_EXAM_COMMIT,
+            params={
+                "_classId": self.clazzid,
+                "courseid": self.courseid,
+                "token": self.enc_work,
+                "workAnswerId": self.workAnswerId,
+                "ua": "app",
+                "formType2": "post",
+                "saveStatus": 1,
+                "version": 1,
+                "tempsave": 1
+            },
+            data={
+                "pyFlag": "1",
                 "courseId": self.courseid,
                 "classId": self.clazzid,
                 "api": 1,
