@@ -142,10 +142,10 @@ class ChapterExam:
         html = BeautifulSoup(resp.text, "lxml")
         try:
             if r := re.search(
-                    r"window\.AttachmentSetting *= *(.+?);",
+                    r"window\.AttachmentSetting *= *(.+?)\};",
                     html.head.find("script", type="text/javascript").text,
             ):
-                attachment = json.loads(r.group(1))
+                attachment = json.loads(r.group(1)+"}")
             else:
                 raise ValueError
             self.logger.debug(f"attachment: {attachment}")
@@ -201,7 +201,7 @@ class ChapterExam:
             if re.search(r"无效的权限", p.text):
                 self.logger.warning("试题无权限")
                 return False
-        self.title = html.find("h3", {"class": "py-Title"}).text.strip()
+        self.title = html.find("div", {"class": "Py-m1-title"}).text.strip()
         # 提取答题表单参数
         self.workAnswerId = int(html.find("input", {"name": "workAnswerId"})["value"])
         self.enc_work = html.find("input", {"name": "enc_work"})["value"]

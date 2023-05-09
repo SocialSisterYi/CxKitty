@@ -87,10 +87,10 @@ class ChapterVideo:
         html = BeautifulSoup(resp.text, "lxml")
         try:
             if r := re.search(
-                r"window\.AttachmentSetting *= *(.+?);",
+                r"window\.AttachmentSetting *= *(.+?)\};",
                 html.head.find("script", type="text/javascript").text,
             ):
-                attachment = json.loads(r.group(1))
+                attachment = json.loads(r.group(1)+"}")
             else:
                 raise ValueError
             self.logger.debug(f"attachment: {attachment}")
