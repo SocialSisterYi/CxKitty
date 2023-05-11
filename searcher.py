@@ -118,7 +118,7 @@ class EnncySearcher(RestApiSearcher):
             return SearchResp(0, "ok", self, self.question_value, result[0])
         return SearchResp(-500, "未匹配答案字段", self, self.question_value, None)
 
-class cxSearcher(RestApiSearcher):
+class CxSearcher(RestApiSearcher):
     "网课小工具(Go题)题库搜索器"
 
     def __init__(self, token: str) -> None:
@@ -197,5 +197,5 @@ __all__ = [
     "JsonFileSearcher",
     "SqliteSearcher",
     "EnncySearcher",
-    "cxSearcher"
+    "CxSearcher"
 ]
