@@ -118,6 +118,25 @@ class EnncySearcher(RestApiSearcher):
             return SearchResp(0, "ok", self, self.question_value, result[0])
         return SearchResp(-500, "未匹配答案字段", self, self.question_value, None)
 
+class cxSearcher(RestApiSearcher):
+    "网课小工具(Go题)题库搜索器"
+
+    def __init__(self, token: str) -> None:
+        super().__init__(
+            url="https://cx.icodef.com/wyn-nb?v=4",
+            method="POST",
+            req_field="question",
+            headers={"Content-Type": "application/x-www-form-urlencoded",
+                     "Authorization": token},
+            rsp_field="$.data",
+        )
+
+    def parse(self, json_content: dict) -> SearchResp:
+        if jsonpath.compile("$.code").parse(json_content)[0] != 1:
+            return SearchResp(-404, "搜索失败", self, self.question_value, None)
+        if result := self.rsp_query.parse(json_content):
+            return SearchResp(0, "ok", self, self.question_value, result[0])
+        return SearchResp(-500, "未匹配答案字段", self, self.question_value, None)
 
 class JsonFileSearcher(SearcherBase):
     "JSON 数据库搜索器"
@@ -177,4 +196,5 @@ __all__ = [
     "JsonFileSearcher",
     "SqliteSearcher",
     "EnncySearcher",
+    "cxSearcher"
 ]
