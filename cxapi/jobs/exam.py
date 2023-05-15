@@ -48,7 +48,7 @@ def invoke_searcher(question: str) -> list[SearchResp]:
     raise NotImplementedError("至少需要加载一个搜索器")
 
 
-def parse_question(question_node: BeautifulSoup):
+def parse_question(question_node: BeautifulSoup) -> QuestionModel:
     "解析题目"
     # 获取题目 id
     question_id = int(question_node.select_one("input[id*='answertype']")["id"][10:])
@@ -201,7 +201,7 @@ class ChapterExam:
             if re.search(r"无效的权限", p.text):
                 self.logger.warning("试题无权限")
                 return False
-        self.title = html.find("h3", {"class": "py-Title"}).text.strip()
+        self.title = (html.find("div", {"class": "Py-m1-title"}) or html.find("h3", {"class": "py-Title"})).text.strip()
         # 提取答题表单参数
         self.workAnswerId = int(html.find("input", {"name": "workAnswerId"})["value"])
         self.enc_work = html.find("input", {"name": "enc_work"})["value"]
