@@ -28,7 +28,7 @@
 - ✅视频课程任务点模拟播放（无需消耗流量播放流媒体内容）
 - ✅文档任务点模拟浏览（如 word ppt pdf 等）
 - ✅章节测验任务点自动答题，支持单选题、多选题、判断题
-- ✅支持`REST API`、`JSON`、`SQLite`三种类型的题库，可并行搜索优选答案，现已接入`Enncy`一种第三方题库
+- ✅支持`REST API`、`JSON`、`SQLite`三种类型的题库，可并行搜索优选答案，现已接入`Enncy`、`网课小工具（Go题）`两种第三方题库
 - ✅`REST API`类型（在线题库接口）支持使用 JsonPath 语法进行答案字段提取，并提供自定义 HTTP header 选项
 - ✅记录详细的运行日志及未完成的题目至日志文件
 
@@ -186,7 +186,11 @@ SELECT answer FROM questions WHERE question = '国字的演变的过程告诉我
 
 Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第三方题库）
 
-主页链接 https://tk.enncy.cn/
+通过此 [链接](https://tk.enncy.cn/) 获取 Token
+
+网课小工具（Go题）题库，使用前请注册并获取 Token 填写在配置文件中（第三方题库）
+
+获取 Token 方式见 [文档](https://cx.icodef.com/1-UserGuide/1-6-gettoken.html#%E8%8E%B7%E5%8F%96token)
 
 ## 📖Usage & Demo
 

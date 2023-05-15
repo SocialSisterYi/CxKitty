@@ -126,9 +126,11 @@ class CxSearcher(RestApiSearcher):
             url="https://cx.icodef.com/wyn-nb?v=4",
             method="POST",
             req_field="question",
-            headers={"Content-Type": "application/x-www-form-urlencoded",
-                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36 Edg/113.0.1774.35",
-                     "Authorization": token},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36 Edg/113.0.1774.35",
+                "Authorization": token
+            },
             rsp_field="$.data",
         )
 
