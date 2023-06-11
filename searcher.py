@@ -8,6 +8,8 @@ from typing import Literal, Optional, Union
 import jsonpath
 import requests
 
+from cxapi.schema import QuestionModel
+
 
 @dataclass
 class SearchResp:
@@ -30,7 +32,7 @@ def suffix_filter(text: str) -> str:
 class SearcherBase:
     "搜索器基类"
 
-    def invoke(self, question_value: str) -> SearchResp:
+    def invoke(self, question: QuestionModel) -> SearchResp:
         """搜题器调用接口
         >>> SearchResp(
         >>>     code=0,  # 错误码为 0 表示成功, 否则为失败
@@ -45,16 +47,18 @@ class SearcherBase:
 class RestApiSearcher(SearcherBase):
     "REST API 在线搜索器"
     session: requests.Session
-    req_field: str
-    rsp_query: jsonpath.JSONPath
+    q_field: str
+    o_field: list[str] | None
+    a_query: jsonpath.JSONPath
     url: str
     method: Literal["GET", "POST"]
 
     def __init__(
         self,
         url,
-        req_field: str = "question",  # 请求字段
-        rsp_field: str = "$.data",  # 答案字段 使用 jsonpath 语法
+        q_field: str = "question",  # 题目文本字段
+        o_field: str | None = None, # 选项字段
+        a_field: str = "$.data",  # 答案字段 使用 jsonpath 语法
         headers: Optional[dict] = None,  # 自定义头部
         ext_params: Optional[dict] = None,  # 扩展请求字段
         method: Literal["GET", "POST"] = "POST",  # 请求方式
@@ -64,8 +68,9 @@ class RestApiSearcher(SearcherBase):
         self.method = method
         if headers:
             self.session.headers.update(headers)
-        self.req_field = req_field
-        self.rsp_query = jsonpath.compile(rsp_field)
+        self.q_field = q_field
+        self.o_field = o_field
+        self.rsp_query = jsonpath.compile(a_field)
         self.ext_params = ext_params or {}
 
     def parse(self, json_content: dict | list) -> SearchResp:
@@ -73,25 +78,28 @@ class RestApiSearcher(SearcherBase):
             return SearchResp(0, "ok", self, self.question_value, result[0])
         return SearchResp(-500, "未匹配答案字段", self, self.question_value, None)
 
-    def invoke(self, question_value: str) -> SearchResp:
-        self.question_value = question_value
+    def invoke(self, question: QuestionModel) -> SearchResp:
+        self.question_value = question.value
+        params = {self.q_field: self.question_value, **self.ext_params}
+        if self.o_field and question.options:
+            params[self.o_field] = '#'.join(question.options.values())
         try:
             if self.method == "GET":
                 resp = self.session.get(
                     self.url,
-                    params={self.req_field: self.question_value, **self.ext_params},
+                    params=params,
                 )
             elif self.method == "POST":
                 resp = self.session.post(
                     self.url,
-                    data={self.req_field: self.question_value, **self.ext_params},
+                    data=params,
                 )
             else:
                 raise TypeError
             resp.raise_for_status()
             return self.parse(resp.json())
         except Exception as err:
-            return SearchResp(-500, err.__str__(), self, question_value, None)
+            return SearchResp(-500, err.__str__(), self, self.question_value, None)
 
 
 class EnncySearcher(RestApiSearcher):
@@ -102,8 +110,8 @@ class EnncySearcher(RestApiSearcher):
             url="https://tk.enncy.cn/query",
             method="GET",
             ext_params={"v": 1, "token": token},
-            req_field="title",
-            rsp_field="$.data.answer",
+            q_field="title",
+            a_field="$.data.answer",
         )
 
     def parse(self, json_content: dict) -> SearchResp:
@@ -125,13 +133,13 @@ class CxSearcher(RestApiSearcher):
         super().__init__(
             url="https://cx.icodef.com/wyn-nb?v=4",
             method="POST",
-            req_field="question",
+            q_field="question",
             headers={
                 "Content-Type": "application/x-www-form-urlencoded",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36 Edg/113.0.1774.35",
                 "Authorization": token
             },
-            rsp_field="$.data",
+            a_field="$.data",
         )
 
     def parse(self, json_content: dict) -> SearchResp:
@@ -152,15 +160,15 @@ class JsonFileSearcher(SearcherBase):
         except FileNotFoundError:
             raise RuntimeError("JSON 题库文件无效, 请检查配置")
 
-    def invoke(self, question_value: str) -> SearchResp:
+    def invoke(self, question: QuestionModel) -> SearchResp:
         for q, a in self.db.items():
             # 遍历题库缓存并判断相似度
             if (
-                difflib.SequenceMatcher(a=suffix_filter(q), b=suffix_filter(question_value)).ratio()
+                difflib.SequenceMatcher(a=suffix_filter(q), b=suffix_filter(question.value)).ratio()
                 >= 0.9
             ):
                 return SearchResp(0, "ok", self, q, a)
-        return SearchResp(-404, "题目未匹配", self, question_value, None)
+        return SearchResp(-404, "题目未匹配", self, question.value, None)
 
 
 class SqliteSearcher(SearcherBase):
@@ -181,16 +189,16 @@ class SqliteSearcher(SearcherBase):
         self.req_field = req_field
         self.rsp_field = rsp_field
 
-    def invoke(self, question_value: str) -> SearchResp:
+    def invoke(self, question: QuestionModel) -> SearchResp:
         try:
             cur = self.db.execute(
                 f"SELECT {self.req_field},{self.rsp_field} FROM {self.table} WHERE {self.req_field}=(?)",
-                (question_value,),
+                (question.value,),
             )
             q, a = cur.fetchone()
             return SearchResp(0, "ok", self, q, a)
         except Exception as err:
-            return SearchResp(-500, err.__str__(), self, question_value, None)
+            return SearchResp(-500, err.__str__(), self, question.value, None)
 
 
 __all__ = [

@@ -3,7 +3,6 @@
     <h2>CxKitty</h2>
     <img alt="Github Stars" src="https://img.shields.io/github/stars/SocialSisterYi/CxKitty">
     <img alt="Github Forks" src="https://img.shields.io/github/forks/SocialSisterYi/CxKitty">
-    <img alt="Lines of code" src="https://img.shields.io/tokei/lines/github/SocialSisterYi/CxKitty">
     <img alt="Github License" src="https://img.shields.io/github/license/SocialSisterYi/CxKitty">
     <img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg">
     <img alt="Image Size" src="https://img.shields.io/docker/image-size/socialsisteryi/cx-kitty">
@@ -12,25 +11,25 @@
 
 本项目旨在研究学习爬虫技术和网络接口编程技术，同时致力于以开源方式抵制并消灭各种付费“刷课平台”和“黑产”
 
-<span style="color: red"><b>Ps: 本项目不提供任何题库资源，有相关测试需求者请按照文档自行解决。本项目仅供学习参考使用，请在下载部署后24小时内删除，由于使用本项目不当所造成的挂科或不良学习记录作者一概不负责。</b></span>
-
-效果演示视频 https://www.bilibili.com/video/BV1yt4y1P7NF
+<span style="color: red"><b>Ps: 本项目不提供任何题库资源，有相关测试需求者请按照文档自行解决。本项目仅供学习参考使用，请在下载部署后 24 小时内删除，由于使用本项目不当所造成的挂科或不良学习记录作者一概不负责。</b></span>
 
 ## ✨Features
 
 ### Supports
 
-- ✅支持手机号+密码登录、二维码登录, 自动判断账号 ck 有效性, 自动 + 手动重登账号
-- ✅自带多会话管理器，自动获取用户信息，以 json 格式存档在本地
-- ✅Terminal-UI 方式进行人机交互，及展示任务进程、任务点完成状态
-- ✅使用 [requests](https://github.com/psf/requests) 及 [bs4](https://www.crummy.com/software/BeautifulSoup/) 分别进行协议模拟和 HTML 解析，故无需浏览器
-- ✅支持批量选择课程（使用序号/courseId/课程名）
+- ✅支持手机号+密码登录、二维码登录，可以自动 + 手动重登账号
+- ✅自带多会话管理器，自动获取用户信息，自动判断会话 ck 有效性，以 json 格式存档在本地
+- ✅以 Terminal-UI 方式进行人机交互，展示工作流程、章节任务点状态，输出详细信息到 log 文件，作为一个理工男，不觉得很酷吗？
+- ✅批量选择课程（使用序号/courseId/课程名）
+- ✅使用 [requests](https://github.com/psf/requests) 及 [bs4](https://www.crummy.com/software/BeautifulSoup/) 分别进行协议模拟和 HTML 解析，故无需浏览器，更无需油猴脚本
 - ✅视频课程任务点模拟播放（无需消耗流量播放流媒体内容）
 - ✅文档任务点模拟浏览（如 word ppt pdf 等）
-- ✅章节测验任务点自动答题，支持单选题、多选题、判断题
-- ✅支持`REST API`、`JSON`、`SQLite`三种类型的题库，可并行搜索优选答案，现已接入`Enncy`、`网课小工具（Go题）`两种第三方题库
-- ✅`REST API`类型（在线题库接口）支持使用 JsonPath 语法进行答案字段提取，并提供自定义 HTTP header 选项
-- ✅记录详细的运行日志及未完成的题目至日志文件
+- ✅章节测验任务点自动答题，支持单选题、多选题、填空题、判断题
+- ✅完整的章节测验试题导出功能，信息全、无加密无乱码，现支持`多行 json`一种格式
+- ✅自动答题需要至少一种的 **题库后端** 支持，现支持`REST API`、`JSON`、`SQLite`三种类型的 **题库后端**，同时已接入`Enncy`、`网课小工具（Go题）`两种第三方题库，可并行搜索，择优匹配答案（建议使用自建题库）
+- ✅`REST API`类型 **题库后端** （用户接口）支持使用 [JsonPath](https://goessner.net/articles/JsonPath/) 语法进行答案字段提取，允许用户注入 HTTP header 和 params 依赖字段
+- ✅log 文件中将记录未完成的题目
+- ✅无惧接口风控，使用 [OpenCV](https://github.com/opencv/opencv) 与 [ddddocr](https://github.com/sml2h3/ddddocr) 对验证码进行识别，进而解除风控状态
 
 ### TODO
 
@@ -39,9 +38,10 @@
 - ❌短信验证码登录、学号登录
 - ❌直播任务点、文章阅读任务点、课程考试
 - ❌保存未完成的章节测验任务点
-- ❌多题库搜索器实例混用及负载均衡
-- ❌章节测验任务点之填空题、简答题、论述题等
+- ❌章节测验任务点之简答题、论述题等
 - ❌富文本答题
+- ❌试题导出包含已完成的答案
+- ❌使用 Gotify 或 MQTT 上报任务进度以及完成情况
 
 ### BUGS
 
@@ -62,7 +62,7 @@
 
 ![](imgs/typo.png)
 
-## 🚀Build Repo
+## 🚀Build
 
 ### 💻本地化构建项目
 
@@ -115,9 +115,9 @@ docker build --tag socialsisteryi/cx-kitty .
 
 `/app/config.yml`程序配置文件
 
-`/app/questions.json`json题库 (根据配置文件修改)
+`/app/questions.json`json题库 (根据配置文件修改，**如不需要可不映射**)
 
-`/app/questions.db`sqlite题库 (根据配置文件修改)
+`/app/questions.db`sqlite题库 (根据配置文件修改，**如不需要可不映射**)
 
 ```bash
 docker run -it \
@@ -194,7 +194,7 @@ Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第�
 
 ## 📖Usage & Demo
 
-**注：本项目非“开箱即用”，如需使用自动答题功能，请确保拥有准确无误的题库资源**
+**注：本项目并非小白向“开箱即用”类型，需要一定的专业技术能力；如需使用自动答题功能，请确保您拥有准确无误的题库资源**
 
 当配置文件和题库资源无误后，运行主程序，进行选择会话存档，若少于一个会话存档，则直接进入登录界面
 
@@ -208,8 +208,8 @@ Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第�
 
 - 课程序号：`0`、`1`、`2`
 - 课程序号范围：`0-3`、`5-10`
-- 课程名：`"解析几何"`、`"马克思主义"`（非重复项可省略后半部分
-- 课程courseId：`#23026xxx`、`#22928xx`
+- 课程名：`"解析几何"`、`"马克思主义"`（非重复项可省略后半部分）
+- 课程 courseId：`#23026xxx`、`#22928xx`
 
 如需要完成课程`0`、课程`1-3`、课程`解析几何`则输入：`0,1-3,"解析几何"`
 

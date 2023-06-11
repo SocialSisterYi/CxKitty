@@ -11,13 +11,13 @@ except FileNotFoundError:
     warnings.warn("Config file not found", RuntimeWarning)
 
 # 路径配置
-SESSIONPATH = Path(conf.get("sessionPath", "session"))
-LOGPATH = Path(conf.get("logPath", "logs"))
+SESSIONPATH = Path(conf.get("session_path", "session"))
+LOGPATH = Path(conf.get("log_path", "logs"))
 
 # 基本配置
-MULTI_SESS: bool = conf.get("multiSession", True)
-TUI_MAX_HEIGHT: int = conf.get("tUIMaxHeight", 25)
-MASKACC: bool = conf.get("maskAcc", True)
+MULTI_SESS: bool = conf.get("multi_session", True)
+TUI_MAX_HEIGHT: int = conf.get("tui_max_height", 25)
+MASKACC: bool = conf.get("mask_acc", True)
 
 # 任务配置
 EXAM: dict = conf.get("exam", {})

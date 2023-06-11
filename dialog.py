@@ -5,8 +5,10 @@ from typing import Iterator
 
 from qrcode import QRCode
 from rich.console import Console
+from rich.prompt import Prompt
 from rich.table import Table
 
+import config
 from cxapi.api import ChaoXingAPI
 from cxapi.classes import Classes, ClassSeqIter
 from utils import (
@@ -15,9 +17,9 @@ from utils import (
     ck2dict,
     mask_name,
     mask_phone,
-    save_session,
+    save_session
 )
-import config
+
 
 def logo(tui_ctx: Console) -> None:
     "显示项目logo"
@@ -49,7 +51,8 @@ def accinfo(tui_ctx: Console, api: ChaoXingAPI) -> None:
 def login(tui_ctx: Console, api: ChaoXingAPI):
     "交互-登录账号"
     while True:
-        uname = tui_ctx.input("[yellow]请输入手机号, 留空为二维码登录：")
+        uname = Prompt.ask("[yellow]请输入手机号, 留空为二维码登录[/]", console=tui_ctx)
+        tui_ctx.print('')
         # 二维码登录
         if uname == "":
             api.qr_get()
@@ -83,7 +86,8 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
                 time.sleep(1.0)
         # 手机号+密码登录
         else:
-            passwd = tui_ctx.input("[yellow]请输入密码 (隐藏)：", password=True)
+            passwd = Prompt.ask("[yellow]请输入密码 (内容隐藏)", password=True, console=tui_ctx)
+            tui_ctx.print('')
             status, result = api.login_passwd(uname, passwd)
             if status:
                 tui_ctx.print("[green]登录成功")
@@ -124,7 +128,8 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
         )
     tui_ctx.print(tb)
     while True:
-        inp = tui_ctx.input("输入会话序号选择 (序号后加r重登), 留空登录新账号, 退出输入q：")
+        inp = Prompt.ask("输入会话序号选择 ([yellow]序号后加r重登[/]), 留空登录新账号, 退出输入 [yellow]q[/]", console=tui_ctx)
+        tui_ctx.print('')
         if inp == "":
             login(tui_ctx, api)
             if api.accinfo():
@@ -162,7 +167,8 @@ def select_class(tui_ctx: Console, classes: Classes) -> Iterator:
         )
     while True:
         tui_ctx.print(tb)
-        inp = tui_ctx.input("请输入欲完成的课程 (序号/名称/id), 输入q退出：")
+        inp = Prompt.ask("请输入欲完成的课程 ([yellow]序号/名称/id[/]), 输入 [yellow]q[/] 退出", console=tui_ctx)
+        tui_ctx.print('')
         if inp == "q":
             sys.exit()
         else:

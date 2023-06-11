@@ -8,9 +8,11 @@ from Crypto.Util.Padding import pad
 
 from logger import Logger
 
-from . import APIError, get_ua
+from . import get_ua
+from .exception import APIError
 from .classes import Classes
 from .schema import AccountInfo
+from .session import SessionWraper
 
 # 接口-web端登录
 API_LOGIN_WEB = "https://passport2.chaoxing.com/fanyalogin"
@@ -34,7 +36,7 @@ PAGE_LOGIN = "https://passport2.chaoxing.com/login"
 class ChaoXingAPI:
     "学习通爬虫主类"
     logger: Logger
-    session: requests.Session
+    session: SessionWraper
     acc: AccountInfo
     # 二维码登录用
     qr_uuid: str
@@ -42,11 +44,7 @@ class ChaoXingAPI:
 
     def __init__(self) -> None:
         self.logger = Logger("MainAPI")
-        self.session = requests.Session()
-        # 默认使用 APP 的 UA, 因为一些接口为 APP 独占
-        self.session.headers.update(
-            {"User-Agent": get_ua("mobile"), "X-Requested-With": "com.chaoxing.mobile"}
-        )
+        self.session = SessionWraper()
 
     def ck_load(self, ck: dict[str, str]) -> None:
         "加载dict格式的ck"
@@ -133,7 +131,7 @@ class ChaoXingAPI:
 
     def fetch_classes(self) -> Classes:
         "拉取课程"
-        resp = self.session.get(API_CLASS_LST)
+        resp = self.session.get(API_CLASS_LST, allow_redirects=False)
         resp.raise_for_status()
         content_json = resp.json()
         if content_json["result"] != 1:

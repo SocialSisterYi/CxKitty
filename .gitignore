@@ -128,7 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-.vscode/
 session/*.json
-questions.json
-questions.db
+questions.*
+WorkExport.txt

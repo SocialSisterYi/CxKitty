@@ -1,15 +1,15 @@
 # 基本配置
 
 # 是否开启多会话模式
-multiSession: true
+multi_session: true
 # 是否开启姓名手机号打码
-maskAcc: true
-# TUI 最大显示高度
-tUIMaxHeight: 25
+mask_acc: true
+# TUI 最大显示高度 null: 自适应高度
+tui_max_height: 25
 # 会话存档路径
-sessionPath: "session/"
+session_path: "session/"
 # 日志文件路径
-logPath: "logs/"
+log_path: "logs/"
 
 # --------------------
 
@@ -30,10 +30,14 @@ video:
 exam:
   # 使能
   enable: true
+  # 是否进行试题导出 可以将 `enable`设置为 false, 从而进行 dry run
+  export: false
   # 完成等待时间
   wait: 15
-  # TODO: 是否匹配失败自动保存
-  # fail_save: true
+  # 作答失败后是否保存进度
+  fail_save: true
+  # 导出文件路径
+  export_path: "WorkExport.txt"
 
 # 文档
 document:
@@ -44,8 +48,8 @@ document:
 
 # --------------------
 
-# 搜索器选择 (可同时使用多个搜索器, 以 yaml 语法中 list 格式添加, `type`字段决定搜索器类型)
-# 可用的搜索器有: restApiSearcher jsonFileSearcher sqliteSearcher enncySearcher
+# 搜索器选择 (可同时使用多个搜索器, 请取消注释以 yaml 语法中 list 格式添加, `type`字段决定搜索器类型)
+# 可用的搜索器有: restApiSearcher jsonFileSearcher sqliteSearcher enncySearcher cxSearcher
 searchers:
   # 本地 JSON 数据库搜索器 (key为题, value为答案)
   - type: jsonFileSearcher
@@ -53,14 +57,15 @@ searchers:
 
   # REST API 在线搜题
   # - type: restApiSearcher
-  #   url: "http://127.0.0.1:88/v1/cx"  # API url
+  #   url: "http://10.50.9.10:8088/question/search"  # API URL 请进行替换
   #   method: "POST"  # 请求方式
-  #   req_field: "question"  # 请求参数
-  #   headers:  # 自定义请求头(可选) 使用 yaml 的 k-v 语法填写
+  #   q_field: "question"  # 题目文本参数
+  #   o_field: null  # 选项文本参数 (可选)  用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 
+  #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
   #     # eg: Authorization: 'xxx'
-  #   ext_params: # 自定义扩展请求参数(可选) 使用 yaml 的 k-v 语法填写
+  #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
   #     # eg: Token: 'xxx'
-  #   rsp_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
+  #   a_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
   
   # 本地 sqlite 数据库搜索器
   # - type: sqliteSearcher
@@ -69,10 +74,10 @@ searchers:
   #   req_field: "question"  # 请求字段
   #   rsp_field: "answer"  # 返回字段
 
-  # Enncy 题库搜索器，使用前请注册 https://tk.enncy.cn/
+  # Enncy 题库搜索器, 使用前请注册 https://tk.enncy.cn/
   # - type: enncySearcher
   #   token: "xxx"  # Enncy 题库 Token
 
-  # 网课小工具(Go题)题库搜索器，使用前请获取Token https://cx.icodef.com/1-UserGuide/1-6-gettoken.html#%E8%8E%B7%E5%8F%96token
+  # 网课小工具 (Go题) 题库搜索器, 使用前请获取Token https://cx.icodef.com/1-UserGuide/1-6-gettoken.html#%E8%8E%B7%E5%8F%96token
   # - type: cxSearcher
-  #   token: "xxx"  # 网课小工具(Go题)题库 Token
+  #   token: "xxx"  # 网课小工具 (Go题)题库 Token

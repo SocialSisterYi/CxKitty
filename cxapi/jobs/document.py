@@ -41,20 +41,20 @@ class ChapterDocument:
         self,
         session: requests.Session,
         acc: AccountInfo,
-        clazzid: int,
-        courseid: int,
-        knowledgeid: int,
+        clazz_id: int,
+        course_id: int,
+        knowledge_id: int,
         card_index: int,
-        objectid: str,
+        object_id: str,
         cpi: int,
     ) -> None:
         self.session = session
         self.acc = acc
-        self.clazzid = clazzid
-        self.courseid = courseid
-        self.knowledgeid = knowledgeid
+        self.clazzid = clazz_id
+        self.courseid = course_id
+        self.knowledgeid = knowledge_id
         self.card_index = card_index
-        self.objectid = objectid
+        self.objectid = object_id
         self.cpi = cpi
         self.logger = Logger("PointDocument")
         self.logger.set_loginfo(self.acc.phone)
@@ -126,7 +126,7 @@ class ChapterDocument:
         self.logger.debug(f"上报 resp: {json_content}")
         return json_content
 
-    def reading(self, tui_ctx: Layout) -> None:
+    def watch(self, tui_ctx: Layout) -> None:
         "开始模拟阅读文档"
         inspect = Layout()
         tui_ctx.split_column(Panel(f"模拟浏览：{self.title}", title="正在模拟浏览"), inspect)

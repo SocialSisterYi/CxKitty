@@ -41,30 +41,30 @@ class ChapterVideo:
     objectid: str
     fid: int
     dtoken: str
-    duration: int
+    duration: int   # 视频时长
     jobid: str
     otherInfo: str
-    title: str
+    title: str      # 视频标题
     rt: float
 
     def __init__(
         self,
         session: requests.Session,
         acc: AccountInfo,
-        clazzid: int,
-        courseid: int,
-        knowledgeid: int,
+        clazz_id: int,
+        course_id: int,
+        knowledge_id: int,
         card_index: int,
-        objectid: str,
+        object_id: str,
         cpi: int,
     ) -> None:
         self.session = session
         self.acc = acc
-        self.clazzid = clazzid
-        self.courseid = courseid
-        self.knowledgeid = knowledgeid
+        self.clazzid = clazz_id
+        self.courseid = course_id
+        self.knowledgeid = knowledge_id
         self.card_index = card_index
-        self.objectid = objectid
+        self.objectid = object_id
         self.cpi = cpi
         self.logger = Logger("PointVideo")
         self.logger.set_loginfo(self.acc.phone)
@@ -163,14 +163,13 @@ class ChapterVideo:
         )
         resp.raise_for_status()
         json_content = resp.json()
-        self.logger.info("播放上报成功")
         self.logger.debug(f"上报 resp: {json_content}")
         return json_content
 
-    def playing(self, tui_ctx: Layout, speed: float = 1.0, report_rate: int = 58) -> None:
+    def play(self, tui_ctx: Layout, speed: float = 1.0, report_rate: int = 58) -> None:
         "开始模拟播放视频"
-        s_counter = report_rate
-        playing_time = 0
+        s_counter = report_rate     # 上报计时器
+        playing_time = 0            # 当前播放时间
         progress = Progress()
         info = Layout()
         tui_ctx.split_column(
@@ -191,7 +190,7 @@ class ChapterVideo:
             f"[{self.title}/{self.duration}(O.{self.objectid}/T.{self.dtoken}/J.{self.jobid})]"
         )
         while True:
-            if s_counter >= report_rate:
+            if s_counter >= report_rate or playing_time >= self.duration:
                 s_counter = 0
                 report_result = self.__play_report(playing_time)
                 j = JSON.from_data(report_result, ensure_ascii=False)

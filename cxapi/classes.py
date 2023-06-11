@@ -5,7 +5,7 @@ import requests
 
 from logger import Logger
 
-from . import APIError
+from .exception import APIError
 from .chapters import ClassChapters
 from .schema import AccountInfo, ClassModule
 

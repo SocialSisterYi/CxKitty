@@ -1,7 +1,9 @@
 #!/bin/python3
 import json
 import time
+from pathlib import Path
 
+from rich.align import Align
 from rich.console import Console
 from rich.layout import Layout
 from rich.live import Live
@@ -18,16 +20,26 @@ from cxapi.jobs.exam import ChapterExam, add_searcher
 from cxapi.jobs.video import ChapterVideo
 from utils import ck2dict, sessions_load
 
-try:
-    import readline
-except ImportError:
-    ...
-
+api = ChaoXingAPI()
 console = Console(height=config.TUI_MAX_HEIGHT)
 install(console=console, show_locals=False)
 
+layout = Layout()
+lay_left = Layout(
+    Panel(
+        Align.center(
+            "[yellow]正在扫描章节，请稍等...",
+            vertical="middle"
+        )
+    ), 
+    name="left"
+)
+lay_right = Layout(name="right", size=60)
+lay_chapter = Layout(name="chapter")
+lay_captcha = Layout(name="captcha", size=6)
+
 # 自动判断类型, 并实例化搜索器
-if config.EXAM_EN:
+if config.EXAM_EN and config.SEARCHERS:
     for searcher_conf in config.SEARCHERS:
         typename = searcher_conf["type"]
         typename = typename[0].upper() + typename[1:]
@@ -37,25 +49,49 @@ if config.EXAM_EN:
         # 动态加载搜索器类
         add_searcher(getattr(searcher, typename)(**searcher_conf))
 
-
 def wait_for_class(tui_ctx: Layout, wait_sec: int, text: str):
     "课间等待, 防止风控"
     tui_ctx.unsplit()
     for i in range(wait_sec):
-        tui_ctx.update(Panel(f"[green]{text}, 课间等待{i}/{wait_sec}s"))
+        tui_ctx.update(Panel(
+            Align.center(
+                f"[green]{text}, 课间等待{i}/{wait_sec}s",
+                vertical="middle"
+            )
+        ))
         time.sleep(1.0)
 
+def on_captcha_after(times: int):
+    "识别验证码前 回调"
+    if layout.get("captcha") is None:
+        lay_right.split_column(lay_chapter, lay_captcha)
+    lay_captcha.update(Panel(f'[yellow]正在识别验证码，第 {times} 次...', title='[red]接口风控', border_style='yellow'))
 
+def on_captcha_before(status: bool, code: str):
+    if status is True:
+        lay_captcha.update(Panel(f'[green]验证码识别成功：[yellow]{code}[green]，提交正确', title='[red]接口风控', border_style='green'))
+        time.sleep(1.0)
+        lay_right.unsplit()
+    else:
+        lay_captcha.update(Panel(f'[red]验证码识别成功：[yellow]{code}[red]，提交错误，10S 后重试', title='[red]接口风控', border_style='red'))
+        time.sleep(1.0)
+        
 def fuck_task_worker(chap: ClassChapters):
     "完成任务点实现函数"
-    lay = Layout()
-    lay_main = Layout(Panel("等待执行任务"), name="main")
-    lay_chapter = Layout(name="chapter", size=70)
-    lay.split_row(lay_main, lay_chapter)
+    def _show_chapter(index: int):
+        chap.set_tui_index(index)
+        lay_chapter.update(Panel(chap, title=f"《{chap.name}》章节列表", border_style="blue"))
+    
+    layout.split_row(lay_left, lay_right)
+    lay_right.update(lay_chapter)
+    
     chap.fetch_point_status()
-    with Live(lay, console=console) as live:
-        for index in range(len(chap.chapters)):
-            chap.render_lst2tui(lay_chapter, index)
+    with Live(layout, console=console) as live:
+        api.session.reg_captcha_after(on_captcha_after)
+        api.session.reg_captcha_before(on_captcha_before)
+        
+        for index in range(len(chap)):
+            _show_chapter(index)
             if chap.is_finished(index):  # 如果该章节所有任务点做完, 那么就跳过
                 chap.logger.info(
                     f"忽略完成任务点 "
@@ -63,58 +99,77 @@ def fuck_task_worker(chap: ClassChapters):
                 )
                 time.sleep(0.1)  # 解决强迫症, 故意添加延时, 为展示滚屏效果
                 continue
-            for task_point in chap.fetch_points_by_index(index):  # 获取当前章节的所有任务点, 并遍历
-                # 预拉取任务点数据
-                prefetch_status = task_point.pre_fetch()
-                if not prefetch_status:
-                    del task_point
-                    continue
-                # 拉取取任务点数据
-                fetch_status = task_point.fetch()
-                if not fetch_status:
-                    del task_point
-                    continue
+            for task_point in chap[index]:  # 获取当前章节的所有任务点, 并遍历
                 # 开始分类讨论任务点类型
 
                 # 试题类型
-                if isinstance(task_point, ChapterExam) and config.EXAM_EN:
-                    task_point.fill_and_commit(lay_main)
-                    # 开始等待
-                    wait_for_class(lay_main, config.EXAM_WAIT, f"试题《{task_point.title}》已结束")
+                if isinstance(task_point, ChapterExam) and (config.EXAM_EN or config.EXAM['export'] is True):
+                    # 预拉取任务点数据
+                    if not task_point.pre_fetch():
+                        continue
+                    # 拉取取任务点数据
+                    if not task_point.fetch():
+                        continue
+                    # 导出试题
+                    if config.EXAM['export'] is True:
+                        json_data = task_point.export('json')
+                        with Path(config.EXAM['export_path']).open('a', encoding='utf8') as fp:
+                            fp.write(json_data + "\n")
+                    # 完成试题
+                    if config.EXAM_EN:
+                        task_point.fill_and_commit(lay_left, config.EXAM["fail_save"])
+                        # 开始等待
+                        wait_for_class(lay_left, config.EXAM_WAIT, f"试题《{task_point.title}》已结束")
 
                 # 视频类型
                 elif isinstance(task_point, ChapterVideo) and config.VIDEO_EN:
-                    task_point.playing(lay_main, config.VIDEO["speed"], config.VIDEO["report_rate"])
+                    # 预拉取任务点数据
+                    if not task_point.pre_fetch():
+                        continue
+                    # 拉取取任务点数据
+                    if not task_point.fetch():
+                        continue
+                    task_point.play(lay_left, config.VIDEO["speed"], config.VIDEO["report_rate"])
                     # 开始等待
-                    wait_for_class(lay_main, config.VIDEO_WAIT, f"视频《{task_point.title}》已结束")
+                    wait_for_class(lay_left, config.VIDEO_WAIT, f"视频《{task_point.title}》已结束")
 
                 # 文档类型
                 elif isinstance(task_point, ChapterDocument) and config.DOCUMENT_EN:
-                    task_point.reading(lay_main)
+                    # 预拉取任务点数据
+                    if not task_point.pre_fetch():
+                        continue
+                    # 拉取取任务点数据
+                    if not task_point.fetch():
+                        continue
+                    task_point.watch(lay_left)
                     # 开始等待
-                    wait_for_class(lay_main, config.DOCUMENT_WAIT, f"文档《{task_point.title}》已结束")
+                    wait_for_class(lay_left, config.DOCUMENT_WAIT, f"文档《{task_point.title}》已结束")
 
-                # 析构任务点对象
-                del task_point
                 chap.fetch_point_status()  # 刷新章节任务点状态
-                chap.render_lst2tui(lay_chapter, index)
-        lay_main.unsplit()
-        lay_main.update(Panel("[green]该课程已通过", border_style="green"))
+                _show_chapter(index)
+        lay_left.unsplit()
+        lay_left.update(
+            Panel(
+                Align.center(
+                    "[green]该课程已通过",
+                    vertical="middle"
+                ),
+                border_style="green"
+            )
+        )
         time.sleep(5.0)
 
-
 if __name__ == "__main__":
-    api = ChaoXingAPI()
     dialog.logo(console)
-    sessions = sessions_load()
+    acc_sessions = sessions_load()
     # 存在至少一个会话存档
-    if sessions:
+    if acc_sessions:
         # 开启多会话, 允许进行选择
         if config.MULTI_SESS:
-            dialog.select_session(console, sessions, api)
+            dialog.select_session(console, acc_sessions, api)
         # 关闭多会话, 默认加载第一个会话存档
         else:
-            ck = ck2dict(sessions[0].ck)
+            ck = ck2dict(acc_sessions[0].ck)
             api.ck_load(ck)
     # 会话存档为空
     else:
@@ -134,6 +189,7 @@ if __name__ == "__main__":
             console.print("[red]JSON 解析失败, 可能为账号 ck 失效, 请重新登录该账号 (序号+r)")
         else:
             console.print("[bold red]程序运行出现错误, 请截图保存并附上 log 文件在 issue 提交")
+        raise
     except KeyboardInterrupt:
         api.logger.warning("-----*手动中断程序*-----")
         console.print("[yellow]手动中断程序运行")
