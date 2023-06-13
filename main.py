@@ -1,5 +1,6 @@
 #!/bin/python3
 import json
+import sys
 import time
 from pathlib import Path
 
@@ -164,13 +165,18 @@ if __name__ == "__main__":
     acc_sessions = sessions_load()
     # 存在至少一个会话存档
     if acc_sessions:
-        # 开启多会话, 允许进行选择
+        # 多用户, 允许进行选择
         if config.MULTI_SESS:
             dialog.select_session(console, acc_sessions, api)
-        # 关闭多会话, 默认加载第一个会话存档
+        # 单用户, 默认加载第一个会话档
         else:
             ck = ck2dict(acc_sessions[0].ck)
             api.ck_load(ck)
+            if not api.accinfo():
+                console.print("[red]会话失效, 尝试重新登录")
+                if not dialog.relogin(console, acc_sessions[0], api):
+                    console.print("[red]重登失败，账号或密码错误")
+                    sys.exit()
     # 会话存档为空
     else:
         console.print("[yellow]会话存档为空, 请登录账号")

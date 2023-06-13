@@ -327,7 +327,7 @@ class ChapterExam:
         tui_ctx.split_column(tb, msg)
         tb.title = f"[bold yellow]答题中[/]  {self.title}"
         tb.border_style = "yellow"
-        mistake_questions = []  # 答错题列表
+        mistake_questions: list[tuple[QuestionModel, str]] = []  # 答错题列表
         for question in self.questions:
             results = invoke_searcher(question)  # 调用搜索器搜索方法
             self.logger.debug(f"题库调用成功 req={question.value} rsp={results}")
@@ -369,10 +369,16 @@ class ChapterExam:
             commit_result = self.__commit()
             j = JSON.from_data(commit_result, ensure_ascii=False)
             if commit_result["status"] == True:
-                self.logger.info(f"试题提交成功 " f"[{self.title}(J.{self.job_id}/W.{self.work_id})]")
+                self.logger.info(
+                    f"试题提交成功 "
+                    f"[{self.title}(J.{self.job_id}/W.{self.work_id})]"
+                )
                 msg.update(Panel(j, title="提交成功 TAT！", border_style="green"))
             else:
-                self.logger.warning(f"试题提交失败 " f"[{self.title}(J.{self.job_id}/W.{self.work_id})]")
+                self.logger.warning(
+                    f"试题提交失败 "
+                    f"[{self.title}(J.{self.job_id}/W.{self.work_id})]"
+                )
                 msg.update(Panel(j, title="提交失败！", border_style="red"))
 
         else:
@@ -388,23 +394,18 @@ class ChapterExam:
                 )
             )
             self.logger.warning(f"试题未完成 " f"[{self.title}(J.{self.job_id}/W.{self.work_id})]")
-            self.logger.warning(
-                f"共 {mistake_num} 题未完成\n"
-                + "--------------------\n"
-                + "\n".join(
-                    (
-                            f"{i}.\tq({q.q_type.name}/{q.q_type.value}): {q.value} "
-                            + (
-                                f"\n\to: {' '.join(f'{k}={v}' for k, v in q.answers.items())}"
-                                if q.q_type in (QuestionType.单选题, QuestionType.多选题)
-                                else ""
-                            )
-                            + f"\n\ta: {a}"
-                    )
-                    for i, (q, a) in enumerate(mistake_questions, 1)
-                )
-                + "\n--------------------"
-            )
+            
+            # 构建未完成题目提示信息
+            incomplete_msg = f"共 {mistake_num} 题未完成\n"
+            incomplete_msg += "--------------------\n"
+            for i, (q, a) in enumerate(mistake_questions, 1):
+                incomplete_msg += f"{i}.\tq({q.q_type.name}/{q.q_type.value}): {q.value}\n"
+                if q.q_type in (QuestionType.单选题, QuestionType.多选题):
+                    incomplete_msg += f"\to: {' '.join(f'{k}={v}' for k, v in q.options.items())}\n"
+                incomplete_msg += f"\ta: {a}\n"
+            incomplete_msg += "--------------------"
+            self.logger.warning(incomplete_msg)
+            
             # 保存未完成的试卷
             if fail_save:
                 save_result = self.__save()

@@ -98,26 +98,25 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
             else:
                 tui_ctx.print("[red]登录失败")
 
+def relogin(tui_ctx: Console, session: SessionModule, api: ChaoXingAPI):
+    "重新登录账号"
+    phone = session.phone
+    passwd = session.passwd
+    if passwd is not None:
+        status, result = api.login_passwd(phone, passwd)
+        if status:
+            tui_ctx.print("[green]重新登录成功")
+            tui_ctx.print(result)
+            api.accinfo()
+            save_session(api.ck_dump(), api.acc, passwd)
+            return True
+        else:
+            tui_ctx.print("[red]登录失败, 请手动登录")
+    else:
+        tui_ctx.print("[red]找不到密码, 无法重登")
 
 def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXingAPI):
     "交互-选择会话"
-
-    def relogin(index: int):
-        phone = sessions[index].phone
-        passwd = sessions[index].passwd
-        if passwd is not None:
-            status, result = api.login_passwd(phone, passwd)
-            if status:
-                tui_ctx.print("[green]重新登录成功")
-                tui_ctx.print(result)
-                api.accinfo()
-                save_session(api.ck_dump(), api.acc, passwd)
-                return True
-            else:
-                tui_ctx.print("[red]登录失败, 清手动登录")
-        else:
-            tui_ctx.print("[red]找不到密码, 无法重登")
-
     tb = Table("序号", "手机号", "puid", "姓名", title="请选择欲读档的会话")
     for index, session in enumerate(sessions):
         tb.add_row(
@@ -139,7 +138,7 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
         elif r := re.match(r"^(\d+)(r?)", inp):
             index = int(r.group(1))
             if r.group(2) == "r":
-                starts = relogin(index)
+                starts = relogin(tui_ctx, sessions[index], api)
                 if starts:
                     return
             else:
@@ -148,7 +147,7 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
                 # 自动重登逻辑
                 if not api.accinfo():
                     tui_ctx.print("[red]会话失效, 尝试重新登录")
-                    starts = relogin(index)
+                    starts = relogin(tui_ctx, sessions[index], api)
                     if not starts:
                         continue
                 return
