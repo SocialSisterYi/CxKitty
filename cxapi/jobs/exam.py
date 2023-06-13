@@ -419,25 +419,26 @@ class ChapterExam:
 
     def __mk_answer_reqform(self) -> dict[str, str]:
         "输出试题答案表单信息"
-        result = {"answerwqbid": ",".join(str(q.q_id) for q in self.questions)}
+        form = {"answerwqbid": ",".join(str(q.q_id) for q in self.questions)}
         for q in self.questions:
-            result[f"answertype{q.q_id}"] = q.q_type.value
+            form[f"answertype{q.q_id}"] = q.q_type.value
             match q.q_type:
                 case QuestionType.判断题:
-                    result[f"answer{q.q_id}"] = "true" if q.answer else "false"
+                    form[f"answer{q.q_id}"] = "true" if q.answer else "false"
                 case QuestionType.填空题:
-                    blank_amount = len(q.answer)
-                    result[f"tiankongsize{q.q_id}"] = blank_amount
-                    for blank_index in range(blank_amount):
-                        result[f"answer{q.q_id}{blank_index + 1}"] = q.answer[blank_index]
+                    if isinstance(q.answer, list):
+                        blank_amount = len(q.answer)
+                        form[f"tiankongsize{q.q_id}"] = blank_amount
+                        for blank_index in range(blank_amount):
+                            form[f"answer{q.q_id}{blank_index + 1}"] = q.answer[blank_index]
                 case _:
-                    result[f"answer{q.q_id}"] = q.answer
-        return result
+                    form[f"answer{q.q_id}"] = q.answer
+        return form
 
     def __commit(self) -> dict:
         "提交答题信息"
-        answer_data = self.__mk_answer_reqform()
-        self.logger.debug(f"试题提交 payload: {answer_data}")
+        answer_form = self.__mk_answer_reqform()
+        self.logger.debug(f"试题提交 payload: {answer_form}")
         resp = self.session.post(
             API_EXAM_COMMIT,
             params={
@@ -470,7 +471,7 @@ class ChapterExam:
                 "isphone": "true",
                 "userId": self.acc.puid,
                 "workTimesEnc": "",
-                **answer_data,
+                **answer_form,
             },
         )
         resp.raise_for_status()
@@ -480,8 +481,8 @@ class ChapterExam:
 
     def __save(self) -> dict:
         "保存答题信息"
-        answer_data = self.__mk_answer_reqform()
-        self.logger.debug(f"试题保存 payload: {answer_data}")
+        answer_form = self.__mk_answer_reqform()
+        self.logger.debug(f"试题保存 payload: {answer_form}")
         resp = self.session.post(
             API_EXAM_COMMIT,
             params={
@@ -513,7 +514,7 @@ class ChapterExam:
                 "isphone": "true",
                 "userId": self.acc.puid,
                 "workTimesEnc": "",
-                **answer_data,
+                **answer_form,
             },
         )
         resp.raise_for_status()

@@ -189,7 +189,6 @@ if __name__ == "__main__":
             console.print("[red]JSON 解析失败, 可能为账号 ck 失效, 请重新登录该账号 (序号+r)")
         else:
             console.print("[bold red]程序运行出现错误, 请截图保存并附上 log 文件在 issue 提交")
-        raise
     except KeyboardInterrupt:
         api.logger.warning("-----*手动中断程序*-----")
         console.print("[yellow]手动中断程序运行")

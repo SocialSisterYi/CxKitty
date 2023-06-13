@@ -1,5 +1,6 @@
 imgs/
 .vscode/
-session/*.json
+session/
+logs/
 questions.*
 WorkExport.txt

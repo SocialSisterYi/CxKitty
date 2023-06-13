@@ -24,7 +24,7 @@
 - ✅使用 [requests](https://github.com/psf/requests) 及 [bs4](https://www.crummy.com/software/BeautifulSoup/) 分别进行协议模拟和 HTML 解析，故无需浏览器，更无需油猴脚本
 - ✅视频课程任务点模拟播放（无需消耗流量播放流媒体内容）
 - ✅文档任务点模拟浏览（如 word ppt pdf 等）
-- ✅章节测验任务点自动答题，支持单选题、多选题、填空题、判断题
+- ✅章节测验任务点自动答题，支持单选题、多选题、填空题、判断题，试题未完成可临时保存
 - ✅完整的章节测验试题导出功能，信息全、无加密无乱码，现支持`多行 json`一种格式
 - ✅自动答题需要至少一种的 **题库后端** 支持，现支持`REST API`、`JSON`、`SQLite`三种类型的 **题库后端**，同时已接入`Enncy`、`网课小工具（Go题）`两种第三方题库，可并行搜索，择优匹配答案（建议使用自建题库）
 - ✅`REST API`类型 **题库后端** （用户接口）支持使用 [JsonPath](https://goessner.net/articles/JsonPath/) 语法进行答案字段提取，允许用户注入 HTTP header 和 params 依赖字段
@@ -37,11 +37,11 @@
 
 - ❌短信验证码登录、学号登录
 - ❌直播任务点、文章阅读任务点、课程考试
-- ❌保存未完成的章节测验任务点
 - ❌章节测验任务点之简答题、论述题等
 - ❌富文本答题
 - ❌试题导出包含已完成的答案
 - ❌使用 Gotify 或 MQTT 上报任务进度以及完成情况
+- ❌使用 args 直接传参登录账号以及选课
 
 ### BUGS
 
@@ -123,7 +123,7 @@ docker build --tag socialsisteryi/cx-kitty .
 docker run -it \
   --name shuake_task1 \
   -v "$PWD/session:/app/session" \
-  -v "$PWD/app/logs:/app/logs" \
+  -v "$PWD/logs:/app/logs" \
   -v "$PWD/config.yml:/app/config.yml" \
   #-v "$PWD/questions.json:/app/questions.json" \
   #-v "$PWD/questions.db:/app/questions.db" \
