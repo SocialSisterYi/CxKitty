@@ -1,0 +1,22 @@
+name: Docker Image CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag for building"
+        default: "latest"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build image
+        run: docker build -f Dockerfile -t socialsisteryi/cx-kitty:${{ inputs.tag }} .
+      - name: Login to registry
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+      - name: Push Image
+        run: docker push socialsisteryi/cx-kitty:${{ inputs.tag }}
