@@ -73,10 +73,10 @@ def parse_question(question_node: BeautifulSoup) -> QuestionModel:
     # 开始解析选项
     answer_map = {}
     if question_type in (QuestionType.单选题, QuestionType.多选题):
-        answers = question_node.find("ul", {"class": "answerList"}).find_all("li")
+        answers = question_node.find("ul", {"class": "answerList"}).find_all("li", {"class": "more-choose-item"})
         # 遍历选项
         for answer in answers:
-            k = answer.em["id-param"].strip()
+            k = answer.find("em", {"class": "choose-opt"})["id-param"]
             answer_map[k] = (
                 "".join(
                     set(

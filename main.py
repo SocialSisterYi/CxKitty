@@ -63,12 +63,13 @@ def wait_for_class(tui_ctx: Layout, wait_sec: int, text: str):
         time.sleep(1.0)
 
 def on_captcha_after(times: int):
-    "识别验证码前 回调"
+    "识别验证码开始 回调"
     if layout.get("captcha") is None:
         lay_right.split_column(lay_chapter, lay_captcha)
     lay_captcha.update(Panel(f'[yellow]正在识别验证码，第 {times} 次...', title='[red]接口风控', border_style='yellow'))
 
 def on_captcha_before(status: bool, code: str):
+    "验证码识别成功 回调"
     if status is True:
         lay_captcha.update(Panel(f'[green]验证码识别成功：[yellow]{code}[green]，提交正确', title='[red]接口风控', border_style='green'))
         time.sleep(1.0)
@@ -78,7 +79,7 @@ def on_captcha_before(status: bool, code: str):
         time.sleep(1.0)
         
 def fuck_task_worker(chap: ClassChapters):
-    "完成任务点实现函数"
+    "任务点处理实现"
     def _show_chapter(index: int):
         chap.set_tui_index(index)
         lay_chapter.update(Panel(chap, title=f"《{chap.name}》章节列表", border_style="blue"))
