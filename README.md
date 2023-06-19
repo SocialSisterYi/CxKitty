@@ -129,7 +129,24 @@ docker run -it \
   #-v "$PWD/questions.db:/app/questions.db" \
   socialsisteryi/cx-kitty
 ```
+### ▶️使用 可执行文件 (Windows/Linux/MacOS) (测试版)
 
+从[Action](https://github.com/SocialSisterYi/CxKitty/actions/workflows/package-exe.yml)中获取最新的自动构建文件,解压后执行文件即可(请先配置配置文件)
+
+<details>
+<summary>详细步骤</summary>
+
+点击[Action](https://github.com/SocialSisterYi/CxKitty/actions/workflows/package-exe.yml)
+
+右侧点击**绿色**的**最上面**的名为`Package Executable`
+
+跳转后拖到最底下
+
+选择你自己的系统,点一下下载
+
+解压出来后,先配置配置文件,然后执行文件就可以正常启动了
+ 
+</details>
 ## 🔨Configuration
 
 ### 主程序配置
