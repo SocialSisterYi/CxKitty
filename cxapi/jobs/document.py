@@ -2,7 +2,6 @@ import json
 import re
 import time
 
-import requests
 from bs4 import BeautifulSoup
 from rich.json import JSON
 from rich.layout import Layout
@@ -10,8 +9,9 @@ from rich.panel import Panel
 
 from logger import Logger
 
-from .. import get_dc
+from .. import get_ts
 from ..schema import AccountInfo
+from ..session import SessionWraper
 
 # SSR页面-客户端章节任务卡片
 PAGE_MOBILE_CHAPTER_CARD = "https://mooc1-api.chaoxing.com/knowledge/cards"
@@ -20,10 +20,11 @@ PAGE_MOBILE_CHAPTER_CARD = "https://mooc1-api.chaoxing.com/knowledge/cards"
 API_DOCUMENT_READINGREPORT = "https://mooc1.chaoxing.com/ananas/job/document"
 
 
-class ChapterDocument:
-    "章节文档"
+class PointDocumentDto:
+    """章节文档接口
+    """
     logger: Logger
-    session: requests.Session
+    session: SessionWraper
     acc: AccountInfo
     # 基本参数
     clazzid: int
@@ -39,7 +40,7 @@ class ChapterDocument:
 
     def __init__(
         self,
-        session: requests.Session,
+        session: SessionWraper,
         acc: AccountInfo,
         clazz_id: int,
         course_id: int,
@@ -48,6 +49,7 @@ class ChapterDocument:
         object_id: str,
         cpi: int,
     ) -> None:
+        self.logger = Logger("PointDocument")
         self.session = session
         self.acc = acc
         self.clazzid = clazz_id
@@ -56,8 +58,6 @@ class ChapterDocument:
         self.card_index = card_index
         self.objectid = object_id
         self.cpi = cpi
-        self.logger = Logger("PointDocument")
-        self.logger.set_loginfo(self.acc.phone)
 
     def pre_fetch(self) -> bool:
         "预拉取文档  返回是否需要完成"
@@ -118,7 +118,7 @@ class ChapterDocument:
                 "courseid": self.courseid,
                 "clazzid": self.clazzid,
                 "jtoken": self.jtoken,
-                "_dc": get_dc(),
+                "_dc": get_ts(),
             },
         )
         resp.raise_for_status()
@@ -141,4 +141,4 @@ class ChapterDocument:
         time.sleep(1.0)
 
 
-__all__ = ["ChapterDocument"]
+__all__ = ["PointDocumentDto"]

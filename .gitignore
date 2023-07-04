@@ -130,4 +130,4 @@ dmypy.json
 
 session/*.json
 questions.*
-WorkExport.txt
+export/*

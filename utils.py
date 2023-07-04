@@ -14,7 +14,6 @@ __version__ = (
     .strip('"')
 )
 
-
 @dataclass
 class SessionModule:
     "会话数据模型"
@@ -24,11 +23,9 @@ class SessionModule:
     name: str
     ck: str
 
-
 def dict2ck(dict_ck: dict[str, str]) -> str:
     "序列化dict形式的ck"
     return "".join(f"{k}={v};" for k, v in dict_ck.items())
-
 
 def ck2dict(ck: str) -> dict[str, str]:
     "解析ck到dict"
@@ -39,7 +36,6 @@ def ck2dict(ck: str) -> dict[str, str]:
         k, v = field.split("=")
         result[k] = v
     return result
-
 
 def save_session(ck: dict, acc: AccountInfo, passwd: Optional[str] = None) -> None:
     "存档会话数据为json"
@@ -55,7 +51,6 @@ def save_session(ck: dict, acc: AccountInfo, passwd: Optional[str] = None) -> No
             "ck": dict2ck(ck),
         }
         json.dump(sessdata, fp, ensure_ascii=False)
-
 
 def sessions_load():
     "从路径批量读档会话"
@@ -78,16 +73,13 @@ def sessions_load():
         )
     return sessions
 
-
 def mask_name(name: str) -> str:
     "打码姓名"
-    return name[0] + "*" + (name[-1] if len(name) > 2 else "")
-
+    return name[0] + ("*" * (len(name) - 2) + name[-1] if len(name) > 2 else "*")
 
 def mask_phone(phone: str) -> str:
     "打码手机号"
     return phone[:3] + "****" + phone[-4:]
-
 
 __all__ = [
     "save_session",

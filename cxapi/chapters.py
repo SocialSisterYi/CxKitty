@@ -1,6 +1,5 @@
 import json
 
-import requests
 from bs4 import BeautifulSoup
 from rich.console import Console, ConsoleOptions, Group, RenderResult
 from rich.padding import Padding
@@ -10,14 +9,15 @@ from rich.text import Text
 
 from logger import Logger
 
-from . import calc_infenc, get_dc
+from . import calc_infenc, get_ts
 from .exception import APIError
-from .jobs.document import ChapterDocument
-from .jobs.exam import ChapterExam
-from .jobs.video import ChapterVideo
+from .jobs.document import PointDocumentDto
+from .jobs.video import PointVideoDto
+from .jobs.work import PointWorkDto
 from .schema import AccountInfo, ChapterModel
+from .session import SessionWraper
 
-TaskPointType = ChapterExam | ChapterVideo | ChapterDocument
+TaskPointType = PointWorkDto | PointVideoDto | PointDocumentDto
 
 # 接口-课程章节任务点状态
 API_CHAPTER_POINT = "https://mooc1-api.chaoxing.com/job/myjobsnodesmap"
@@ -26,10 +26,12 @@ API_CHAPTER_POINT = "https://mooc1-api.chaoxing.com/job/myjobsnodesmap"
 API_CHAPTER_CARDS = "https://mooc1-api.chaoxing.com/gas/knowledge"
 
 
-class ClassChapters:
-    "课程章节"
+class ChapterContainer:
+    """课程章节容器
+    用于获取章节任务点
+    """
     logger: Logger
-    session: requests.Session
+    session: SessionWraper
     acc: AccountInfo
     chapters: list[ChapterModel]
     # 课程参数
@@ -42,39 +44,24 @@ class ClassChapters:
 
     def __init__(
         self,
-        session: requests.Session,
+        session: SessionWraper,
         acc: AccountInfo,
         courseid: int,
         name: str,
         clazzid: int,
         cpi: int,
-        chapter_lst: list[dict],
+        chapters: list[ChapterModel],
     ) -> None:
+        self.logger = Logger("Chapters")
         self.session = session
         self.acc = acc
         self.courseid = courseid
         self.clazzid = clazzid
         self.name = name
         self.cpi = cpi
-        self.logger = Logger("Chapters")
-        self.logger.set_loginfo(self.acc.phone)
+        self.chapters = chapters
+        
         self.tui_index = 0
-
-        self.chapters = [
-            ChapterModel(
-                chapter_id=cha["id"],
-                jobs=cha["jobcount"],
-                index=cha["indexorder"],
-                name=cha["name"].strip(),
-                label=cha["label"],
-                layer=cha["layer"],
-                status=cha["status"],
-                point_total=0,
-                point_finished=0,
-            )
-            for cha in chapter_lst
-        ]
-        self.chapters.sort(key=lambda x: tuple(int(v) for v in x.label.split(".")))
 
     def __len__(self) -> int:
         return len(self.chapters)
@@ -137,7 +124,7 @@ class ClassChapters:
                 "view": "json",
                 "nodes": ",".join(str(c.chapter_id) for c in self.chapters),
                 "clazzid": self.clazzid,
-                "time": get_dc(),
+                "time": get_ts(),
                 "userid": self.acc.puid,
                 "cpi": self.cpi,
                 "courseid": self.courseid,
@@ -165,7 +152,7 @@ class ClassChapters:
             "fields": "id,parentnodeid,indexorder,label,layer,name,begintime,createtime,lastmodifytime,status,jobUnfinishedCount,clickcount,openlock,card.fields(id,knowledgeid,title,knowledgeTitile,description,cardorder).contentcard(all)",
             "view": "json",
             "token": "4faa8662c59590c6f43ae9fe5b002b42",
-            "_time": get_dc(),
+            "_time": get_ts(),
         }
         resp = self.session.get(
             API_CHAPTER_CARDS, params={**params, "inf_enc": calc_infenc(params)}
@@ -207,7 +194,7 @@ class ClassChapters:
                     case "insertvideo":
                         # 视频任务点
                         point_objs.append(
-                            ChapterVideo(
+                            PointVideoDto(
                                 session=self.session,
                                 acc=self.acc,
                                 card_index=card_index,
@@ -224,7 +211,7 @@ class ClassChapters:
                     case "work":
                         # 测验任务点
                         point_objs.append(
-                            ChapterExam(
+                            PointWorkDto(
                                 session=self.session,
                                 acc=self.acc,
                                 card_index=card_index,
@@ -243,7 +230,7 @@ class ClassChapters:
                     case "insertdoc":
                         # 文档查看任务点
                         point_objs.append(
-                            ChapterDocument(
+                            PointDocumentDto(
                                 session=self.session,
                                 acc=self.acc,
                                 card_index=card_index,
@@ -264,4 +251,4 @@ class ClassChapters:
         return point_objs
 
 
-__all__ = ["ClassChapters"]
+__all__ = ["ChapterContainer"]

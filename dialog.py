@@ -1,16 +1,18 @@
 import re
 import sys
 import time
-from typing import Iterator
 
 from qrcode import QRCode
 from rich.console import Console
 from rich.prompt import Prompt
+from rich.styled import Styled
 from rich.table import Table
 
 import config
 from cxapi.api import ChaoXingAPI
-from cxapi.classes import Classes, ClassSeqIter
+from cxapi.classes import ClassContainer
+from cxapi.exam import ExamDto
+from cxapi.schema import ClassExamModule, ClassStatus, ExamStatus
 from utils import (
     SessionModule,
     __version__,
@@ -45,7 +47,15 @@ def logo(tui_ctx: Console) -> None:
 
 def accinfo(tui_ctx: Console, api: ChaoXingAPI) -> None:
     "显示账号信息到终端"
-    tui_ctx.print(f"[green]账号已登录[/] {' '.join(f'{k}={v}' for k, v in api.acc.__dict__.items())}")
+    tui_ctx.print(
+        f"[green]账号已登录[/] "
+        f"puid={api.acc.puid} "
+        f"姓名={api.acc.name} "
+        f"性别={api.acc.sex.name} "
+        f"电话={api.acc.phone} "
+        f"学校={api.acc.school} "
+        f"学号={api.acc.stu_id}"
+    )
 
 
 def login(tui_ctx: Console, api: ChaoXingAPI):
@@ -68,7 +78,7 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
                     tui_ctx.print("[green]登录成功")
                     api.accinfo()
                     accinfo(tui_ctx, api)
-                    save_session(api.ck_dump(), api.acc)
+                    save_session(api.session.ck_dump(), api.acc)
                     return
                 match qr_status.get("type"):
                     case "1":
@@ -93,7 +103,7 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
                 tui_ctx.print("[green]登录成功")
                 tui_ctx.print(result)
                 api.accinfo()
-                save_session(api.ck_dump(), api.acc, passwd)
+                save_session(api.session.ck_dump(), api.acc, passwd)
                 return
             else:
                 tui_ctx.print("[red]登录失败")
@@ -108,7 +118,7 @@ def relogin(tui_ctx: Console, session: SessionModule, api: ChaoXingAPI):
             tui_ctx.print("[green]重新登录成功")
             tui_ctx.print(result)
             api.accinfo()
-            save_session(api.ck_dump(), api.acc, passwd)
+            save_session(api.session.ck_dump(), api.acc, passwd)
             return True
         else:
             tui_ctx.print("[red]登录失败, 请手动登录")
@@ -143,7 +153,7 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
                     return
             else:
                 ck = ck2dict(sessions[index].ck)
-                api.ck_load(ck)
+                api.session.ck_load(ck)
                 # 自动重登逻辑
                 if not api.accinfo():
                     tui_ctx.print("[red]会话失效, 尝试重新登录")
@@ -152,8 +162,7 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
                         continue
                 return
 
-
-def select_class(tui_ctx: Console, classes: Classes) -> Iterator:
+def select_class(tui_ctx: Console, classes: ClassContainer) -> str:
     "交互-选择课程"
     tb = Table("序号", "课程名", "老师名", "课程id", "课程状态", title="所学的课程", border_style="blue")
     for index, cla in enumerate(classes.classes):
@@ -161,17 +170,65 @@ def select_class(tui_ctx: Console, classes: Classes) -> Iterator:
             f"[green]{index}",
             cla.name,
             cla.teacher_name,
-            str(cla.courseid),
-            "[red]已结课" if cla.state else "[green]进行中",
+            str(cla.course_id),
+            Styled(cla.state.name, style="red" if cla.state == ClassStatus.已结课 else "green")
         )
     while True:
         tui_ctx.print(tb)
-        inp = Prompt.ask("请输入欲完成的课程 ([yellow]序号/名称/id[/]), 输入 [yellow]q[/] 退出", console=tui_ctx)
-        tui_ctx.print('')
-        if inp == "q":
+        command = Prompt.ask("请输入欲完成的课程 ([yellow]序号/名称/id[/]), 序号前加[yellow]\"EXAM|\"[/]进入考试模式, 输入 [yellow]q[/] 退出", console=tui_ctx)
+        tui_ctx.print("")
+        if command == "q":
             sys.exit()
         else:
-            seq = ClassSeqIter(inp, classes)
-            if len(seq) == 0:
-                continue
-            return seq
+            return command
+
+def select_exam(tui_ctx: Console, exams: list[ClassExamModule], api: ChaoXingAPI) -> tuple[ExamDto, bool]:
+    """交互-选择考试
+    Args:
+        tui_ctx: TUI ctx
+        exams: 考试列表
+        api: 根 API
+    Return:
+        ExamDto: 考试接口对象
+        bool: 是否导出模式
+    """
+    tb = Table("序号", "考试名", "过期时间", "考试id", "考试状态", title="课程考试", border_style="blue")
+    for index, exam in enumerate(exams):
+        match exam.status:
+            case ExamStatus.未开始:
+                status_style = "red"
+            case ExamStatus.未交:
+                status_style = "yellow"
+            case ExamStatus.已完成:
+                status_style = "green"
+        tb.add_row(
+            f"[green]{index}",
+            exam.name,
+            exam.expire_time or "-",
+            str(exam.exam_id),
+            Styled(exam.status.name, style=status_style)
+        )
+    while True:
+        tui_ctx.print(tb)
+        command = Prompt.ask("请选择考试对应的序号（[yellow]序号前加e导出[/]）, 输入 [yellow]q[/] 退出", console=tui_ctx)
+        tui_ctx.print("")
+        if command == "q":
+            sys.exit()
+        else:
+            if command[0] == "e":
+                export = True
+                exam_index = int(command[1:])
+            else:
+                export = False
+                exam_index = int(command)
+            exam = ExamDto(
+                session=api.session,
+                acc=api.acc,
+                exam_id=exams[exam_index].exam_id,
+                course_id=exams[exam_index].course_id,
+                class_id=exams[exam_index].class_id,
+                cpi=exams[exam_index].cpi,
+                enc_task=exams[exam_index].enc_task
+            )
+            return exam, export
+    

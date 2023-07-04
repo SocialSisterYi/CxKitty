@@ -10,6 +10,8 @@ tui_max_height: 25
 session_path: "session/"
 # 日志文件路径
 log_path: "logs/"
+# 试题导出路径
+export_path: "export/"
 
 # --------------------
 
@@ -17,27 +19,26 @@ log_path: "logs/"
 # 视频
 video:
   # 使能
-  enable: true  
+  enable: true
   # 完成等待时间
   wait: 15
   # 倍速
   speed: 1.0
   # 视频播放汇报率 (没事别改)
   report_rate: 58
-  
 
-# 试题
-exam:
+# 作业 (章节测验)
+work:
   # 使能
   enable: true
   # 是否进行试题导出 可以将 `enable`设置为 false, 从而进行 dry run
   export: false
   # 完成等待时间
   wait: 15
-  # 作答失败后是否保存进度
-  fail_save: true
-  # 导出文件路径
-  export_path: "WorkExport.txt"
+  # 未匹配选项是否随机选择
+  fallback_fuzzer: false
+  # 作答失败后是否保存
+  fallback_save: true
 
 # 文档
 document:
@@ -45,6 +46,15 @@ document:
   enable: true
   # 完成等待时间
   wait: 15
+
+# 考试
+exam:
+  # 未匹配选项是否随机选择
+  fallback_fuzzer: false
+  # 提交前延迟时间
+  persubmit_delay: 10
+  # 是否需要交互式确认交卷 自动交卷: false 手动确认: true
+  confirm_submit: true
 
 # --------------------
 
@@ -74,10 +84,10 @@ searchers:
   #   req_field: "question"  # 请求字段
   #   rsp_field: "answer"  # 返回字段
 
-  # Enncy 题库搜索器, 使用前请注册 https://tk.enncy.cn/
+  # Enncy 题库搜索器，使用前请注册 https://tk.enncy.cn/
   # - type: enncySearcher
   #   token: "xxx"  # Enncy 题库 Token
 
-  # 网课小工具 (Go题) 题库搜索器, 使用前请获取Token https://cx.icodef.com/1-UserGuide/1-6-gettoken.html#%E8%8E%B7%E5%8F%96token
+  # 网课小工具(Go题)题库搜索器，使用前请获取Token https://cx.icodef.com/1-UserGuide/1-6-gettoken.html#%E8%8E%B7%E5%8F%96token
   # - type: cxSearcher
-  #   token: "xxx"  # 网课小工具 (Go题)题库 Token
+  #   token: "xxx"  # 网课小工具(Go题)题库 Token

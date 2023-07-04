@@ -8,7 +8,6 @@
     <img alt="Image Size" src="https://img.shields.io/docker/image-size/socialsisteryi/cx-kitty">
 </div>
 
-
 本项目旨在研究学习爬虫技术和网络接口编程技术，同时致力于以开源方式抵制并消灭各种付费“刷课平台”和“黑产”
 
 <span style="color: red"><b>Ps: 本项目不提供任何题库资源，有相关测试需求者请按照文档自行解决。本项目仅供学习参考使用，请在下载部署后 24 小时内删除，由于使用本项目不当所造成的挂科或不良学习记录作者一概不负责。</b></span>
@@ -17,31 +16,39 @@
 
 ### Supports
 
-- ✅支持手机号+密码登录、二维码登录，可以自动 + 手动重登账号
-- ✅自带多会话管理器，自动获取用户信息，自动判断会话 ck 有效性，以 json 格式存档在本地
-- ✅以 Terminal-UI 方式进行人机交互，展示工作流程、章节任务点状态，输出详细信息到 log 文件，作为一个理工男，不觉得很酷吗？
-- ✅批量选择课程（使用序号/courseId/课程名）
-- ✅使用 [requests](https://github.com/psf/requests) 及 [bs4](https://www.crummy.com/software/BeautifulSoup/) 分别进行协议模拟和 HTML 解析，故无需浏览器，更无需油猴脚本
-- ✅视频课程任务点模拟播放（无需消耗流量播放流媒体内容）
-- ✅文档任务点模拟浏览（如 word ppt pdf 等）
-- ✅章节测验任务点自动答题，支持单选题、多选题、填空题、判断题，试题未完成可临时保存
-- ✅完整的章节测验试题导出功能，信息全、无加密无乱码，现支持`多行 json`一种格式
-- ✅自动答题需要至少一种的 **题库后端** 支持，现支持`REST API`、`JSON`、`SQLite`三种类型的 **题库后端**，同时已接入`Enncy`、`网课小工具（Go题）`两种第三方题库，可并行搜索，择优匹配答案（建议使用自建题库）
-- ✅`REST API`类型 **题库后端** （用户接口）支持使用 [JsonPath](https://goessner.net/articles/JsonPath/) 语法进行答案字段提取，允许用户注入 HTTP header 和 params 依赖字段
-- ✅log 文件中将记录未完成的题目
-- ✅无惧接口风控，使用 [OpenCV](https://github.com/opencv/opencv) 与 [ddddocr](https://github.com/sml2h3/ddddocr) 对验证码进行识别，进而解除风控状态
+- 会话管理
+  - ✅支持手机号+密码登录、二维码登录，可以自动 / 手动重登账号
+  - ✅内置多账号管理器，自动存取账号信息，自动判断会话 ck 有效性，以 json 格式存档在本地
+- 交互
+  - ✅以 Terminal-UI 方式进行人机交互，展示工作流程、章节任务点状态，输出详细信息到 log 文件，作为一个理工男，不觉得很酷吗？
+  - ✅批量选择课程（使用序号 / courseId / 课程名）
+- 协议实现
+  - ✅使用 [requests](https://github.com/psf/requests) 及 [bs4](https://www.crummy.com/software/BeautifulSoup/) 分别进行协议模拟和 HTML 解析，故无需浏览器，更无需油猴脚本
+  - ✅无惧接口风控，基于 [OpenCV](https://github.com/opencv/opencv) 与 [ddddocr](https://github.com/sml2h3/ddddocr) 对验证码进行识别，进而解除风控状态
+  - ✅接口请求自动 retry 支持，针对网络环境不佳以及使用移动流量的场景优化
+- 任务点
+  - ✅视频课程任务点模拟播放（无需消耗流量播放流媒体内容）
+  - ✅文档任务点模拟浏览（如 word ppt pdf 等）
+- 考试及测验
+  - ✅章节测验任务点自动答题，支持单选题、多选题、填空题、判断题，试题未完成可临时保存
+  - ✅课程考试自动答题，支持单选题、多选题、填空题、判断题（考试模式、使用手机客户端协议）
+  - ✅遇到匹配失败的题，可使用 fuzzer 方式填充答案并提交（默认关闭）
+  - ✅章节测验试题 / 课程考试可完整导出，信息全、无加密无乱码，可导出临时保存的答案，现支持`json`格式
+  - ✅自动答题功能需要至少一种的 **题库后端** 支持，现支持`REST API`、`JSON`、`SQLite`三种类型的 **题库后端**，同时已接入`Enncy`、`网课小工具（Go题）`两种第三方题库，可并行搜索，择优匹配答案（建议使用自建题库）
+  - ✅`REST API`类型 **题库后端** （用户接口）支持使用 [JsonPath](https://goessner.net/articles/JsonPath/) 语法进行答案字段提取，允许用户注入 HTTP header 和 params 依赖字段
+  - ✅log 文件中将记录未完成的题目
 
 ### TODO
 
 以下特性有可能逐渐被添加
 
 - ❌短信验证码登录、学号登录
-- ❌直播任务点、文章阅读任务点、课程考试
-- ❌章节测验任务点之简答题、论述题等
+- ❌直播任务点、文章阅读任务点
+- ❌简答题、论述题等题型支持
 - ❌富文本答题
-- ❌试题导出包含已完成的答案
 - ❌使用 Gotify 或 MQTT 上报任务进度以及完成情况
 - ❌使用 args 直接传参登录账号以及选课
+- ❌导出已批阅的章节测验
 
 ### BUGS
 
@@ -107,11 +114,13 @@ docker build --tag socialsisteryi/cx-kitty .
 
 运行容器
 
-请按实际情况映射以下容器内路径
+请按实际情况映射以下容器内路径：
 
 `/app/session`会话存档目录
 
 `/app/logs`程序日志目录
+
+`/app/export`试题导出目录 (根据配置文件修改，**如不需要可不映射**)
 
 `/app/config.yml`程序配置文件
 
@@ -119,14 +128,18 @@ docker build --tag socialsisteryi/cx-kitty .
 
 `/app/questions.db`sqlite题库 (根据配置文件修改，**如不需要可不映射**)
 
+由于程序使用 TUI，Docker 的日志服务会自动捕获并保存容器的 stdo，所以建议使用参数`--log-opt max-size=xx`限制容器的日志大小，以免造成过多的磁盘占用
+
 ```bash
 docker run -it \
-  --name shuake_task1 \
-  -v "$PWD/session:/app/session" \
+  --name cx_kitty \
+  -v "$PWD/session:/app/session"  \
+  -v "$PWD/export:/app/export" \
   -v "$PWD/logs:/app/logs" \
   -v "$PWD/config.yml:/app/config.yml" \
   #-v "$PWD/questions.json:/app/questions.json" \
   #-v "$PWD/questions.db:/app/questions.db" \
+  --log-opt max-size=10m \
   socialsisteryi/cx-kitty
 ```
 ### ▶️使用 可执行文件 (Windows/Linux/MacOS) (测试版)
@@ -230,13 +243,21 @@ Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第�
 - 课程名：`"解析几何"`、`"马克思主义"`（非重复项可省略后半部分）
 - 课程 courseId：`#23026xxx`、`#22928xx`
 
-如需要完成课程`0`、课程`1-3`、课程`解析几何`则输入：`0,1-3,"解析几何"`
-
 ![](imgs/demo2.png)
 
 程序会自动完成视频及测验任务点，并展示章节任务点情况
 
 ![](imgs/demo3.png)
+
+如需要完成课程`0`、课程`1-3`、课程`解析几何`则输入：`0,1-3,"解析几何"`
+
+如需进入**考试模式**，那么需要在指定课程（使用**课程选择器语法**）前输入`EXAM|`，即可进入二级菜单，如：
+
+`EXAM|0`、`EXAM|"解析几何"`等
+
+若配置文件的`exam->confirm_submit`为`true`那么在交卷前会提示确认，否则将自动交卷
+
+![](imgs/demo4.png)
 
 ## 💡About Repo Name
 

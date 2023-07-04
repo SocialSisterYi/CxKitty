@@ -4,7 +4,6 @@ import time
 import urllib.parse
 from hashlib import md5
 
-import requests
 from bs4 import BeautifulSoup
 from rich.json import JSON
 from rich.layout import Layout
@@ -13,8 +12,9 @@ from rich.progress import Progress
 
 from logger import Logger
 
-from .. import get_dc
+from .. import get_ts
 from ..schema import AccountInfo
+from ..session import SessionWraper
 
 # SSR页面-客户端章节任务卡片
 PAGE_MOBILE_CHAPTER_CARD = "https://mooc1-api.chaoxing.com/knowledge/cards"
@@ -26,10 +26,11 @@ API_CHAPTER_CARD_RESOURCE = "https://mooc1-api.chaoxing.com/ananas/status"
 API_VIDEO_PLAYREPORT = "https://mooc1-api.chaoxing.com/multimedia/log/a"
 
 
-class ChapterVideo:
-    "章节视频"
+class PointVideoDto:
+    """任务点视频接口
+    """
     logger: Logger
-    session: requests.Session
+    session: SessionWraper
     acc: AccountInfo
     # 基本参数
     clazzid: int
@@ -49,7 +50,7 @@ class ChapterVideo:
 
     def __init__(
         self,
-        session: requests.Session,
+        session: SessionWraper,
         acc: AccountInfo,
         clazz_id: int,
         course_id: int,
@@ -58,6 +59,7 @@ class ChapterVideo:
         object_id: str,
         cpi: int,
     ) -> None:
+        self.logger = Logger("PointVideo")
         self.session = session
         self.acc = acc
         self.clazzid = clazz_id
@@ -66,8 +68,6 @@ class ChapterVideo:
         self.card_index = card_index
         self.objectid = object_id
         self.cpi = cpi
-        self.logger = Logger("PointVideo")
-        self.logger.set_loginfo(self.acc.phone)
 
     def pre_fetch(self) -> bool:
         "预拉取视频  返回是否需要完成"
@@ -120,7 +120,7 @@ class ChapterVideo:
         "拉取视频"
         resp = self.session.get(
             f"{API_CHAPTER_CARD_RESOURCE}/{self.objectid}",
-            params={"k": self.fid, "flag": "normal", "_dc": get_dc()},
+            params={"k": self.fid, "flag": "normal", "_dc": get_ts()},
         )
         resp.raise_for_status()
         json_content = resp.json()
@@ -213,4 +213,4 @@ class ChapterVideo:
             time.sleep(1.0)
 
 
-__all__ = ["ChapterVideo"]
+__all__ = ["PointVideoDto"]

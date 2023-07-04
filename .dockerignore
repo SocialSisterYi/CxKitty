@@ -3,4 +3,4 @@ imgs/
 session/
 logs/
 questions.*
-WorkExport.txt
+export/*

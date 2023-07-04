@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "CxKitty"
-version = "0.3.0"
-description = "超星学习通答题姬"
+version = "0.4.0"
+description = "超星学习通答题姬. 媒体播放、章节测验、课程考试, 集成式自动化工具"
 license = "GPL-3.0"
 authors = ["SocialSisterYi <1440239038@qq.com>"]
 readme = "README.md"
@@ -28,6 +28,7 @@ ddddocr = "^1.4.7"
 numpy = "^1.24.3"
 opencv-python = "^4.7.0.72"
 dataclasses-json = "^0.5.7"
+yarl = "^1.9.2"
 
 
 [tool.poetry.group.dev.dependencies]
