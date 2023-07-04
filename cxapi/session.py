@@ -3,6 +3,7 @@ from typing import Callable
 
 import cv2
 import numpy as np
+import requests
 import requests.utils
 from ddddocr import DdddOcr
 from requests.models import Response
@@ -116,7 +117,7 @@ class SessionWraper(Session):
         """
         try:
             resp = super().request(*args, **kwargs)
-        except ConnectionError as e:
+        except requests.ConnectionError as e:
             self.__request_retry_cnt += 1
             self.logger.warning(f"连接错误 {e.__str__()}")
             time.sleep(self.__retry_delay)
