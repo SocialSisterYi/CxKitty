@@ -61,7 +61,7 @@ class ExamInvalidParams(ExamError):
 class ExamSubmitError(ExamError):
     "考试提交失败"
 
-class ExamSubmitToEarly(ExamSubmitError):
+class ExamSubmitTooEarly(ExamSubmitError):
     def __str__(self):
         return "不允许提前交卷"
 

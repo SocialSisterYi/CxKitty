@@ -106,9 +106,7 @@ def fuck_task_worker(chap: ChapterContainer):
                             # 预拉取任务点数据
                             task_point.pre_fetch()
                             # 保存 json 文件
-                            curr_export_path = config.EXPORTPATH / f"work_{task_point.work_id}.json"
-                            with curr_export_path.open("w", encoding="utf8") as fp:
-                                fp.write(task_point.export("json"))
+                            task_point.export(config.EXPORTPATH / f"work_{task_point.work_id}.json")
                         
                         # 完成章节测验
                         if config.WORK_EN:
@@ -188,8 +186,7 @@ def fuck_exam_worker(exam: ExamDto, export=False):
         # 若开启导出模式, 则不执行自动接管逻辑
         if export is True:
             export_path = config.EXPORTPATH / f"exam_{exam.exam_id}.json"
-            with export_path.open("w", encoding="utf8") as fp:
-                fp.write(exam.export("json"))
+            exam.export(export_path)
             live.stop()
             console.print(
                 f"[red]请注意，导出后考试已开始计时，时间仅剩 {exam.remain_time_str}！！[/]\n"

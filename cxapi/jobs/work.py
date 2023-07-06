@@ -1,5 +1,6 @@
 import json
 import re
+from pathlib import Path
 from typing import Literal
 
 from bs4 import BeautifulSoup, Tag
@@ -448,10 +449,13 @@ class PointWorkDto(QAQDtoBase):
         self.logger.info(f"保存成功 ({json_content.get('msg')}) [{self.title}(J.{self.job_id}/W.{self.work_id})]")
         return json_content
     
-    def export(self, format: Literal["schema", "dict", "json"] = "schema"):
+    def export(
+        self,
+        format_or_path: Literal["schema", "dict", "json"] | Path = "schema"
+    ) -> QuestionsExportSchema | str | dict | None:
         """导出当前试题
         Args:
-            format: 导出格式
+            format_or_path: 导出格式或路径
         """
         if not self.questions:
             self.fetch_all()
@@ -463,15 +467,20 @@ class PointWorkDto(QAQDtoBase):
             questions=self.questions
         )
         self.logger.info(f"导出全部试题 ({format}) [{self.title}(J.{self.job_id}/W.{self.work_id})]")
-        match format:
-            case "schema":
-                return schema
-            case "dict":
-                return schema.to_dict()
-            case "json":
-                return schema.to_json(ensure_ascii=False, separators=(",", ":"))
-            case _:
-                raise TypeError("未定义的导出类型")
+        if isinstance(format_or_path, Path):
+            # 按路径导出
+            with format_or_path.open("w", encoding="utf8") as fp:
+                fp.write(schema.to_json(ensure_ascii=False, separators=(",", ":")))
+        else:
+            match format_or_path:
+                case "schema":
+                    return schema
+                case "dict":
+                    return schema.to_dict()
+                case "json":
+                    return schema.to_json(ensure_ascii=False, separators=(",", ":"))
+                case _:
+                    raise TypeError("未定义的导出类型")
 
 
 __all__ = ["PointWorkDto"]

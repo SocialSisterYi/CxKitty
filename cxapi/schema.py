@@ -96,8 +96,9 @@ class QuestionModel:
 class QuestionsExportType(Enum):
     """试题导出类型
     """
-    Exam = 0    # 试卷
-    Work = 1    # 作业
+    Exam     = 0    # 试卷
+    Work     = 1    # 作业
+    Mistakes = 2    # 错题
 
 
 @dataclass_json

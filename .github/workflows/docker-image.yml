@@ -1,12 +1,9 @@
 name: Docker Image CI
 
 on:
+  release:
+    types: [ published ]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Image tag for building"
-        default: "latest"
-        required: true
 
 jobs:
   build:
@@ -25,7 +22,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: socialsisteryi/cx-kitty:${{ inputs.tag }} 
+          tags: socialsisteryi/cx-kitty:latest
           file: Dockerfile
           context: .
 

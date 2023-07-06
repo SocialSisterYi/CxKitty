@@ -27,7 +27,12 @@ from rich.text import Text
 import config
 from cxapi.base import QAQDtoBase
 from cxapi.exception import APIError
-from cxapi.schema import QuestionModel, QuestionType
+from cxapi.schema import (
+    QuestionModel,
+    QuestionsExportSchema,
+    QuestionsExportType,
+    QuestionType
+)
 from logger import Logger
 
 from .searcher import MultiSearcherWraper, SearcherResp
@@ -277,6 +282,19 @@ class QuestionResolver:
         
         self.logger.warning("\n".join(incomplete_msg))
     
+    def save_mistake(self) -> None:
+        """保存错题到文件
+        """
+        schema = QuestionsExportSchema(
+            id=0,
+            title=self.exam_dto.title,
+            type=QuestionsExportType.Exam,
+            questions=[q for q, a in self.mistakes]
+        )
+        export_path = config.EXPORTPATH / f"mistakes_{int(time.time())}.json"
+        with export_path.open("w", encoding="utf8") as fp:
+                fp.write(schema.to_json(ensure_ascii=False, separators=(",", ":")))
+    
     def reg_confirm_submit_cb(self, cb: Callable[[int, int, list, QAQDtoBase], bool]):
         """注册提交确认函数
         """
@@ -371,24 +389,24 @@ class QuestionResolver:
         # 答题完毕处理
         self.finish_flag = True
         
-        # 不自动交卷, 即退出工作流
-        if not self.auto_final_submit:
-            return
-
-        # 交卷确认不通过, 即退出工作流
-        if self.cb_confirm_submit is not None:
-            if not self.cb_confirm_submit(
-                self.completed_cnt,
-                self.incompleted_cnt,
-                self.mistakes,
-                self.exam_dto
-            ):
-                return
-        
         # 没有错误
         if self.incompleted_cnt == 0:
             refresh_title()
             tb.border_style = "green"
+            
+            # 不自动交卷, 即退出工作流
+            if not self.auto_final_submit:
+                return
+
+            # 交卷确认不通过, 即退出工作流
+            if self.cb_confirm_submit is not None:
+                if not self.cb_confirm_submit(
+                    self.completed_cnt,
+                    self.incompleted_cnt,
+                    self.mistakes,
+                    self.exam_dto
+                ):
+                    return
             
             # 提交试题
             try:
@@ -427,6 +445,7 @@ class QuestionResolver:
             ))
             self.logger.warning(f"试题未完成 [{self.exam_dto}]")
             self.logging_mistake()
+            self.save_mistake()
             time.sleep(5.0)
             
             # 临时保存未完成的试卷

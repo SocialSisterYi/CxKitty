@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from .schema import QuestionModel, QuestionsExportSchema
@@ -64,10 +65,13 @@ class QAQDtoBase:
         """
         raise NotImplementedError
     
-    def export(self, format: Literal["schema", "dict", "json"] = "schema") -> QuestionsExportSchema | str | dict:
+    def export(
+        self,
+        format_or_path: Literal["schema", "dict", "json"] | Path = "schema"
+    ) -> QuestionsExportSchema | str | dict | None:
         """导出当前试题
         Args:
-            format: 导出格式
+            format_or_path: 导出格式或路径
         """
         raise NotImplementedError
 

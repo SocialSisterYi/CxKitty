@@ -1,6 +1,7 @@
 import random
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Literal
 
 from bs4 import BeautifulSoup, Tag
@@ -17,15 +18,28 @@ from logger import Logger
 from . import get_exam_signature, get_imei
 from .base import QAQDtoBase
 from .exception import (
-    APIError, ChaptersNotComplete, ExamAccessDenied,
-    ExamCodeDenied, ExamCompleted, ExamEnterError,
-    ExamError, ExamInvalidParams, ExamIsCommitted,
-    ExamNotStart, ExamSubmitError, ExamSubmitToEarly,
-    ExamTimeout, IPNotAllow, PCExamClintOnly
+    APIError,
+    ChaptersNotComplete,
+    ExamAccessDenied,
+    ExamCodeDenied,
+    ExamCompleted,
+    ExamEnterError,
+    ExamError,
+    ExamInvalidParams,
+    ExamIsCommitted,
+    ExamNotStart,
+    ExamSubmitError,
+    ExamSubmitTooEarly,
+    ExamTimeout,
+    IPNotAllow,
+    PCExamClintOnly
 )
 from .schema import (
-    AccountInfo, QuestionModel, QuestionsExportSchema,
-    QuestionsExportType, QuestionType
+    AccountInfo,
+    QuestionModel,
+    QuestionsExportSchema,
+    QuestionsExportType,
+    QuestionType
 )
 from .session import SessionWraper
 
@@ -87,7 +101,7 @@ def parse_question(question_node: Tag) -> QuestionModel:
             if isinstance(tag, NavigableString):
                 tag = tag.strip()
                 if tag_index == 0 and re.match(r'^\d+.', tag):
-                    _, temp = tag.rsplit('.', 1)
+                    _, temp = tag.split('.', 1)
                     if temp:
                         question_value = temp
                         break
@@ -120,7 +134,13 @@ def parse_question(question_node: Tag) -> QuestionModel:
                     s.strip()
                     for s 
                     in option_node.select_one("cc").strings
-                ).strip()
+                )
+                option_value = (
+                    option_value
+                    .strip()
+                    .replace("\u200b", "")
+                    .replace("\xa0", "")
+                )
                 options[option_key] = option_value
         case QuestionType.填空题:
             answer = []
@@ -180,6 +200,30 @@ def construct_question_form(question: QuestionModel) -> dict[str, int | str]:
         case _:
             raise NotImplementedError
     return form
+
+class AnswerSheetComp:
+    """答题卡显示组件
+    """
+    answer_sheet: dict[str, dict[str, bool]]
+    def __init__(
+        self,
+        answer_sheet: dict[str, dict[str, bool]]
+    ) -> None:
+        self.answer_sheet = answer_sheet
+    
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        tb = Table(show_header=False, padding=(0, 0))
+        for question_type, question_group in self.answer_sheet.items():
+            cols = []
+            for index, (qustion_num, status) in enumerate(question_group.items()):
+                if index % 10 == 0:
+                    col = Columns()
+                col.add_renderable(Text(f"{qustion_num + 1:<2}", style="bold green" if status else "white"))
+                if index % 10 == 0:
+                    cols.append(col)
+            tb.add_row(question_type, Group(*cols))
+            tb.add_section()
+        yield tb
 
 class ExamDto(QAQDtoBase):
     """课程考试客户端接口 (手机客户端协议)
@@ -250,19 +294,6 @@ class ExamDto(QAQDtoBase):
     
     def refresh_tui(self) -> None:
         answer_sheet = self.get_answer_sheet()
-        
-        tb = Table(show_header=False, padding=(0, 0))
-        for question_type, question_group in answer_sheet.items():
-            cols = []
-            for index, (qustion_num, status) in enumerate(question_group.items()):
-                if index % 10 == 0:
-                    col = Columns()
-                col.add_renderable(Text(f"{qustion_num + 1:<2}", style="bold green" if status else "white"))
-                if index % 10 == 0:
-                    cols.append(col)
-            tb.add_row(question_type, Group(*cols))
-            tb.add_section()
-    
         self.tui_ctx.update(Group(
             Text("考试标题：", end="", style="bold green"), Text(self.title),
             Text("考试 id：", end="", style="bold green"), Text(f"{self.exam_id}"),
@@ -270,7 +301,7 @@ class ExamDto(QAQDtoBase):
             Text("剩余时间：", end="", style="bold green"), Text(self.remain_time_str, style="yellow"),
             Text("最近操作时间：", end="", style="bold green"), Text(datetime.fromtimestamp(self.last_update_time / 1000).strftime("%Y-%m-%d %H:%M:%S")),
             Text("答题状态：", style="bold green"),
-            tb
+            AnswerSheetComp(answer_sheet)
         ))
     
     def __next__(self) -> tuple[int, QuestionModel]:
@@ -631,7 +662,7 @@ class ExamDto(QAQDtoBase):
             if json_content.get("msg") == "考试时间已用完,不允许提交答案!":
                 raise ExamTimeout
             elif json_content.get("msg").endswith("分钟内不允许提交考试"):
-                raise ExamSubmitToEarly
+                raise ExamSubmitTooEarly
             else:
                 raise ExamSubmitError(json_content.get("msg"))
 
@@ -668,10 +699,13 @@ class ExamDto(QAQDtoBase):
             "msg": "NotImplemented!"
         }
         
-    def export(self, format: Literal["schema", "dict", "json"] = "schema") -> QuestionsExportSchema | dict | str:
+    def export(
+        self,
+        format_or_path: Literal["schema", "dict", "json"] | Path = "schema"
+    ) -> QuestionsExportSchema | str | dict | None:
         """导出当前试题
         Args:
-            format: 导出格式
+            format_or_path: 导出格式或路径
         """
         schema = QuestionsExportSchema(
             id=self.exam_id,
@@ -680,14 +714,19 @@ class ExamDto(QAQDtoBase):
             questions=self.fetch_all()
         )
         self.logger.info(f"导出全部试题 ({format}) [{self.title}(I.{self.exam_id})]")
-        match format:
-            case "schema":
-                return schema
-            case "dict":
-                return schema.to_dict()
-            case "json":
-                return schema.to_json(ensure_ascii=False, separators=(",", ":"))
-            case _:
-                raise TypeError("未定义的导出类型")
+        if isinstance(format_or_path, Path):
+            # 按路径导出
+            with format_or_path.open("w", encoding="utf8") as fp:
+                fp.write(schema.to_json(ensure_ascii=False, separators=(",", ":")))
+        else:            
+            match format_or_path:
+                case "schema":
+                    return schema
+                case "dict":
+                    return schema.to_dict()
+                case "json":
+                    return schema.to_json(ensure_ascii=False, separators=(",", ":"))
+                case _:
+                    raise TypeError("未定义的导出类型")
 
 __all__ = ["ExamDto"]
