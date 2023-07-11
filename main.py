@@ -22,7 +22,7 @@ from cxapi.jobs.document import PointDocumentDto
 from cxapi.jobs.video import PointVideoDto
 from cxapi.jobs.work import PointWorkDto
 from logger import Logger
-from resolver import QuestionResolver
+from resolver import QuestionResolver, MediaPlayResolver
 from utils import ck2dict, sessions_load
 
 api = ChaoXingAPI()
@@ -135,7 +135,16 @@ def fuck_task_worker(chap: ChapterContainer):
                         # 拉取取任务点数据
                         if not task_point.fetch():
                             continue
-                        task_point.play(lay_left, config.VIDEO["speed"], config.VIDEO["report_rate"])
+                        # 实例化解决器
+                        resolver = MediaPlayResolver(
+                            media_dto=task_point,
+                            speed=config.VIDEO["speed"],
+                            report_rate=config.VIDEO["report_rate"]
+                        )
+                        # 传递 TUI ctx
+                        lay_left.update(resolver)
+                        # 开始执行自动接管
+                        resolver.execute()
                         # 开始等待
                         wait_for_class(lay_left, config.VIDEO_WAIT, f"视频《{task_point.title}》已结束")
 

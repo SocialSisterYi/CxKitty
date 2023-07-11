@@ -5,16 +5,13 @@ import urllib.parse
 from hashlib import md5
 
 from bs4 import BeautifulSoup
-from rich.json import JSON
-from rich.layout import Layout
-from rich.panel import Panel
-from rich.progress import Progress
 
 from logger import Logger
 
 from .. import get_ts
 from ..schema import AccountInfo
 from ..session import SessionWraper
+from ..exception import APIError
 
 # SSR页面-客户端章节任务卡片
 PAGE_MOBILE_CHAPTER_CARD = "https://mooc1-api.chaoxing.com/knowledge/cards"
@@ -69,6 +66,9 @@ class PointVideoDto:
         self.objectid = object_id
         self.cpi = cpi
 
+    def __str__(self) -> str:
+        return f"PointVideo(title={self.title} duration={self.duration} objectid={self.objectid} dtoken={self.dtoken} jobid={self.jobid})"
+    
     def pre_fetch(self) -> bool:
         "预拉取视频  返回是否需要完成"
         resp = self.session.get(
@@ -117,28 +117,40 @@ class PointVideoDto:
             raise RuntimeError("视频预拉取出错")
 
     def fetch(self) -> bool:
-        "拉取视频"
+        """拉取视频
+        """
         resp = self.session.get(
             f"{API_CHAPTER_CARD_RESOURCE}/{self.objectid}",
-            params={"k": self.fid, "flag": "normal", "_dc": get_ts()},
+            params={
+                "k": self.fid,
+                "flag": "normal",
+                "_dc": get_ts(),
+            },
         )
         resp.raise_for_status()
         json_content = resp.json()
         self.dtoken = json_content["dtoken"]
         self.duration = json_content["duration"]
         self.title = json_content["filename"]
-        self.logger.info(
-            f"拉取成功 [{self.title}/{self.duration}(O.{self.objectid}/T.{self.dtoken}/J.{self.jobid})]"
-        )
         self.logger.debug(f"视频 schema: {json_content}")
-        return True
-
-    def __play_report(self, playing_time: int) -> dict:
-        "播放上报"
+        if json_content.get("status") == "success":
+            self.logger.info(f"拉取成功 {self}")
+            return True
+        else:
+            self.logger.info(f"拉取失败")
+            return False
+    
+    def play_report(self, playing_time: int) -> dict:
+        """播放进度上报
+        Args:
+            playing_time: 当前播放进度
+        Returns:
+            dict: json 响应数据
+        """
         resp = self.session.get(
             f"{API_VIDEO_PLAYREPORT}/{self.cpi}/{self.dtoken}",
             params=urllib.parse.urlencode(
-                {
+                query={
                     "otherInfo": self.otherInfo,
                     "playingTime": playing_time,
                     "duration": self.duration,
@@ -150,7 +162,16 @@ class PointVideoDto:
                     "userid": self.acc.puid,
                     "isdrag": "0",
                     "enc": md5(
-                        f"[{self.clazzid}][{self.acc.puid}][{self.jobid}][{self.objectid}][{playing_time * 1000}][d_yHJ!$pdA~5][{self.duration * 1000}][0_{self.duration}]".encode()
+                        "[{}][{}][{}][{}][{}][{}][{}][{}]".format(
+                            self.clazzid,
+                            self.acc.puid,
+                            self.jobid,
+                            self.objectid,
+                            playing_time * 1000,
+                            "d_yHJ!$pdA~5",
+                            self.duration * 1000,
+                            f"0_{self.duration}"
+                        ).encode()
                     ).hexdigest(),
                     "rt": self.rt,
                     "dtype": "Video",
@@ -164,53 +185,10 @@ class PointVideoDto:
         resp.raise_for_status()
         json_content = resp.json()
         self.logger.debug(f"上报 resp: {json_content}")
+        if error := json_content.get("error"):
+            self.logger.error(f"播放上报失败 {playing_time}/{self.duration}")
+            raise APIError(error)
+        self.logger.info(f"播放上报成功 {playing_time}/{self.duration}")
         return json_content
-
-    def play(self, tui_ctx: Layout, speed: float = 1.0, report_rate: int = 58) -> None:
-        "开始模拟播放视频"
-        s_counter = report_rate     # 上报计时器
-        playing_time = 0            # 当前播放时间
-        progress = Progress()
-        info = Layout()
-        tui_ctx.split_column(
-            info, Panel(progress, title=f"模拟播放视频[green]《{self.title}》[/]", border_style="yellow")
-        )
-        bar = progress.add_task("playing...", total=self.duration)
-
-        def _update_bar():
-            "更新进度条"
-            progress.update(
-                bar,
-                completed=playing_time,
-                description=f"playing... [blue]{playing_time // 60:02d}:{playing_time % 60:02d}[/blue] [yellow]{report_rate - s_counter}s后汇报[/yellow](X{speed})",
-            )
-
-        self.logger.info(
-            f"开始播放 倍速=x{speed} 汇报率={report_rate}s "
-            f"[{self.title}/{self.duration}(O.{self.objectid}/T.{self.dtoken}/J.{self.jobid})]"
-        )
-        while True:
-            if s_counter >= report_rate or playing_time >= self.duration:
-                s_counter = 0
-                report_result = self.__play_report(playing_time)
-                j = JSON.from_data(report_result, ensure_ascii=False)
-                if report_result.get("error"):
-                    self.logger.warning(f"播放上报失败 {playing_time}/{self.duration}")
-                    info.update(Panel(j, title="上报失败", border_style="red"))
-                else:
-                    self.logger.info(f"播放上报成功 {playing_time}/{self.duration}")
-                    info.update(Panel(j, title="上报成功", border_style="green"))
-                if report_result.get("isPassed") == True:
-                    playing_time = self.duration  # 强制100%, 解决强迫症
-                    self.logger.info(f"播放完毕")
-                    _update_bar()
-                    info.update(Panel("OHHHHHHHH", title="播放完毕", border_style="green"))
-                    time.sleep(5.0)
-                    break
-            playing_time += round(1 * speed)
-            s_counter += round(1 * speed)
-            _update_bar()
-            time.sleep(1.0)
-
 
 __all__ = ["PointVideoDto"]
