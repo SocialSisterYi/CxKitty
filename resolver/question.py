@@ -246,7 +246,7 @@ class QuestionResolver:
         if self.enable_fallback_fuzzer is True:
             match question.type:
                 case QuestionType.单选题 | QuestionType.多选题:
-                    question.answer = random.choice(question.options.keys())
+                    question.answer = random.choice(list(question.options.keys()))
                     self.logger.warning(f"选择题 fuzzer 填充 {question}")
                     return True
                 case QuestionType.判断题:
