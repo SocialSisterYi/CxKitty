@@ -22,7 +22,7 @@ from cxapi.jobs.document import PointDocumentDto
 from cxapi.jobs.video import PointVideoDto
 from cxapi.jobs.work import PointWorkDto
 from logger import Logger
-from resolver import QuestionResolver, MediaPlayResolver
+from resolver import QuestionResolver, MediaPlayResolver, DocumetResolver
 from utils import ck2dict, sessions_load
 
 api = ChaoXingAPI()
@@ -38,7 +38,7 @@ lay_right_content = Layout(name="RightContent")
 lay_captcha = Layout(name="captcha", size=6)
 lay_right.update(lay_right_content)
 
-def wait_for_class(tui_ctx: Layout, wait_sec: int, text: str):
+def task_wait(tui_ctx: Layout, wait_sec: int, text: str):
     "课间等待, 防止风控"
     tui_ctx.unsplit()
     for i in range(wait_sec):
@@ -125,7 +125,7 @@ def fuck_task_worker(chap: ChapterContainer):
                             # 开始执行自动接管
                             resolver.execute()
                             # 开始等待
-                            wait_for_class(lay_left, config.WORK_WAIT, f"试题《{task_point.title}》已结束")
+                            task_wait(lay_left, config.WORK_WAIT, f"试题《{task_point.title}》已结束")
 
                     # 视频类型
                     elif isinstance(task_point, PointVideoDto) and config.VIDEO_EN:
@@ -146,19 +146,24 @@ def fuck_task_worker(chap: ChapterContainer):
                         # 开始执行自动接管
                         resolver.execute()
                         # 开始等待
-                        wait_for_class(lay_left, config.VIDEO_WAIT, f"视频《{task_point.title}》已结束")
+                        task_wait(lay_left, config.VIDEO_WAIT, f"视频《{task_point.title}》已结束")
 
                     # 文档类型
                     elif isinstance(task_point, PointDocumentDto) and config.DOCUMENT_EN:
                         # 预拉取任务点数据
                         if not task_point.pre_fetch():
                             continue
-                        # 拉取取任务点数据
-                        if not task_point.fetch():
-                            continue
-                        task_point.watch(lay_left)
+                        # 实例化解决器
+                        resolver = DocumetResolver(
+                            document_dto=task_point
+                        )
+                        # 传递 TUI ctx
+                        lay_left.update(resolver)
+                        # 开始执行自动接管
+                        resolver.execute()
+                        
                         # 开始等待
-                        wait_for_class(lay_left, config.DOCUMENT_WAIT, f"文档《{task_point.title}》已结束")
+                        task_wait(lay_left, config.DOCUMENT_WAIT, f"文档《{task_point.title}》已结束")
                     
                 except (TaskPointError, NotImplementedError) as e:
                     logger.error(f"任务点自动接管执行异常 -> {e.__class__.__name__} {e.__str__()}")

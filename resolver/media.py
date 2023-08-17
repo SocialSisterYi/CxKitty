@@ -113,5 +113,5 @@ class MediaPlayResolver:
             s_counter += round(1 * self.speed)
             _update_bar()
             time.sleep(1.0)
-        
-        
+
+__all__ = ["MediaPlayResolver"]

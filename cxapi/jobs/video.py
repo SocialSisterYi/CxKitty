@@ -30,17 +30,17 @@ class PointVideoDto:
     session: SessionWraper
     acc: AccountInfo
     # 基本参数
-    clazzid: int
-    courseid: int
-    knowledgeid: int
+    clazz_id: int
+    course_id: int
+    knowledge_id: int
     card_index: int  # 卡片索引位置
     cpi: int
     # 视频参数
-    objectid: str
+    object_id: str
     fid: int
     dtoken: str
     duration: int   # 视频时长
-    jobid: str
+    job_id: str
     otherInfo: str
     title: str      # 视频标题
     rt: float
@@ -59,24 +59,24 @@ class PointVideoDto:
         self.logger = Logger("PointVideo")
         self.session = session
         self.acc = acc
-        self.clazzid = clazz_id
-        self.courseid = course_id
-        self.knowledgeid = knowledge_id
+        self.clazz_id = clazz_id
+        self.course_id = course_id
+        self.knowledge_id = knowledge_id
         self.card_index = card_index
-        self.objectid = object_id
+        self.object_id = object_id
         self.cpi = cpi
 
     def __str__(self) -> str:
-        return f"PointVideo(title={self.title} duration={self.duration} objectid={self.objectid} dtoken={self.dtoken} jobid={self.jobid})"
+        return f"PointVideo(title={self.title} duration={self.duration} objectid={self.object_id} dtoken={self.dtoken} jobid={self.job_id})"
     
     def pre_fetch(self) -> bool:
         "预拉取视频  返回是否需要完成"
         resp = self.session.get(
             PAGE_MOBILE_CHAPTER_CARD,
             params={
-                "clazzid": self.clazzid,
-                "courseid": self.courseid,
-                "knowledgeid": self.knowledgeid,
+                "clazzid": self.clazz_id,
+                "courseid": self.course_id,
+                "knowledgeid": self.knowledge_id,
                 "num": self.card_index,
                 "isPhone": 1,
                 "control": "true",
@@ -98,13 +98,13 @@ class PointVideoDto:
             # 定位资源objectid
             for point in attachment["attachments"]:
                 if prop := point.get("property"):
-                    if prop.get("objectid") == self.objectid:
+                    if prop.get("objectid") == self.object_id:
                         break
             else:
                 self.logger.warning("定位任务资源失败")
                 return False
             if jobid := point.get("jobid"):
-                self.jobid = jobid
+                self.job_id = jobid
                 self.otherInfo = point["otherInfo"]
                 self.rt = float(point["property"].get("rt", 0.9))
                 self.logger.info("预拉取成功")
@@ -120,7 +120,7 @@ class PointVideoDto:
         """拉取视频
         """
         resp = self.session.get(
-            f"{API_CHAPTER_CARD_RESOURCE}/{self.objectid}",
+            f"{API_CHAPTER_CARD_RESOURCE}/{self.object_id}",
             params={
                 "k": self.fid,
                 "flag": "normal",
@@ -155,18 +155,18 @@ class PointVideoDto:
                     "playingTime": playing_time,
                     "duration": self.duration,
                     # 'akid': None,
-                    "jobid": self.jobid,
+                    "jobid": self.job_id,
                     "clipTime": f"0_{self.duration}",
-                    "clazzId": self.clazzid,
-                    "objectId": self.objectid,
+                    "clazzId": self.clazz_id,
+                    "objectId": self.object_id,
                     "userid": self.acc.puid,
                     "isdrag": "0",
                     "enc": md5(
                         "[{}][{}][{}][{}][{}][{}][{}][{}]".format(
-                            self.clazzid,
+                            self.clazz_id,
                             self.acc.puid,
-                            self.jobid,
-                            self.objectid,
+                            self.job_id,
+                            self.object_id,
                             playing_time * 1000,
                             "d_yHJ!$pdA~5",
                             self.duration * 1000,

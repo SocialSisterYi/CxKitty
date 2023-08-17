@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "CxKitty"
-version = "0.4.1"
+version = "0.4.2"
 description = "超星学习通答题姬. 媒体播放、章节测验、课程考试, 集成式自动化工具"
 license = "GPL-3.0"
 authors = ["SocialSisterYi <1440239038@qq.com>"]

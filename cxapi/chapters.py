@@ -35,9 +35,9 @@ class ChapterContainer:
     acc: AccountInfo
     chapters: list[ChapterModel]
     # 课程参数
-    courseid: int   # 课程 id
+    course_id: int   # 课程 id
     name: str       # 课程名
-    clazzid: int    # 班级 id
+    clazz_id: int    # 班级 id
     cpi: int
     
     tui_index: int  # TUI 列表指针索引值
@@ -55,8 +55,8 @@ class ChapterContainer:
         self.logger = Logger("Chapters")
         self.session = session
         self.acc = acc
-        self.courseid = courseid
-        self.clazzid = clazzid
+        self.course_id = courseid
+        self.clazz_id = clazzid
         self.name = name
         self.cpi = cpi
         self.chapters = chapters
@@ -67,7 +67,7 @@ class ChapterContainer:
         return len(self.chapters)
 
     def __repr__(self) -> str:
-        return f"<ClassChapters id={self.courseid} name={self.name} count={len(self)}>"
+        return f"<ClassChapters id={self.course_id} name={self.name} count={len(self)}>"
 
     def is_finished(self, index: int) -> bool:
         "判断当前章节的任务点是否全部完成"
@@ -123,11 +123,11 @@ class ChapterContainer:
             data={
                 "view": "json",
                 "nodes": ",".join(str(c.chapter_id) for c in self.chapters),
-                "clazzid": self.clazzid,
+                "clazzid": self.clazz_id,
                 "time": get_ts(),
                 "userid": self.acc.puid,
                 "cpi": self.cpi,
-                "courseid": self.courseid,
+                "courseid": self.course_id,
             },
         )
         resp.raise_for_status()
@@ -148,7 +148,7 @@ class ChapterContainer:
         "以课程序号拉取对应“章节”的任务节点卡片资源"
         params = {
             "id": self.chapters[index].chapter_id,
-            "courseid": self.courseid,
+            "courseid": self.course_id,
             "fields": "id,parentnodeid,indexorder,label,layer,name,begintime,createtime,lastmodifytime,status,jobUnfinishedCount,clickcount,openlock,card.fields(id,knowledgeid,title,knowledgeTitile,description,cardorder).contentcard(all)",
             "view": "json",
             "token": "4faa8662c59590c6f43ae9fe5b002b42",
@@ -198,10 +198,10 @@ class ChapterContainer:
                                 session=self.session,
                                 acc=self.acc,
                                 card_index=card_index,
-                                course_id=self.courseid,
+                                course_id=self.course_id,
                                 knowledge_id=self.chapters[index].chapter_id,
                                 object_id=json_data["objectid"],
-                                clazz_id=self.clazzid,
+                                clazz_id=self.clazz_id,
                                 cpi=self.cpi,
                             )
                         )
@@ -215,12 +215,12 @@ class ChapterContainer:
                                 session=self.session,
                                 acc=self.acc,
                                 card_index=card_index,
-                                course_id=self.courseid,
+                                course_id=self.course_id,
                                 work_id=json_data["workid"],
                                 school_id=json_data.get("schoolid"),
                                 job_id=json_data["_jobid"],
                                 knowledge_id=self.chapters[index].chapter_id,
-                                clazz_id=self.clazzid,
+                                clazz_id=self.clazz_id,
                                 cpi=self.cpi,
                             )
                         )
@@ -234,9 +234,9 @@ class ChapterContainer:
                                 session=self.session,
                                 acc=self.acc,
                                 card_index=card_index,
-                                course_id=self.courseid,
+                                course_id=self.course_id,
                                 knowledge_id=self.chapters[index].chapter_id,
-                                clazz_id=self.clazzid,
+                                clazz_id=self.clazz_id,
                                 cpi=self.cpi,
                                 object_id=json_data["objectid"],
                             )

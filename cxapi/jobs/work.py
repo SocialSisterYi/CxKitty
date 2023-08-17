@@ -61,8 +61,9 @@ def parse_question(question_node: Tag) -> QuestionModel:
                         in options_node.select_one("div.choose-desc").cc.strings
                     )
                     .strip()
-                    .replace("\u200b", "")
                     .replace("\xa0", "")
+                    .replace("\u200b", "")
+                    .replace("\u3000", "")
                 )
                 options[option_key] = option_value
         case QuestionType.填空题:
@@ -89,8 +90,9 @@ def parse_question(question_node: Tag) -> QuestionModel:
     
     question_value = (question_value
         .strip()
-        .replace("\u200b", "")
         .replace("\xa0", "")
+        .replace("\u200b", "")
+        .replace("\u3000", "")
     )
     
     return QuestionModel(

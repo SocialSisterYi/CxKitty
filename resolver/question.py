@@ -170,7 +170,7 @@ class QuestionResolver:
         Args:
             exam_dto: 答题接口对象
             fallback_save: 是否失败时保存
-            fuzzer_answer: 是否答案匹配失败时随机填充
+            fallback_fuzzer: 是否答案匹配失败时随机填充
             persubmit_delay: 每次提交的延迟
             auto_final_submit: 是否自动交卷
             cb_confirm_submit： 交卷确认回调函数(completed_cnt, incompleted_cnt, mistakes, exam_dto)

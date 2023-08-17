@@ -258,6 +258,8 @@ Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第�
 
 若配置文件的`exam->confirm_submit`为`true`那么在交卷前会提示确认，否则将自动交卷
 
+如需导出题库到 export 路径，需在考试选择界面输入`e`+序号
+
 ![](imgs/demo4.png)
 
 ## 💡About Repo Name

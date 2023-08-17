@@ -1,17 +1,14 @@
 import json
 import re
-import time
 
 from bs4 import BeautifulSoup
-from rich.json import JSON
-from rich.layout import Layout
-from rich.panel import Panel
 
 from logger import Logger
 
 from .. import get_ts
 from ..schema import AccountInfo
 from ..session import SessionWraper
+from ..exception import APIError 
 
 # SSR页面-客户端章节任务卡片
 PAGE_MOBILE_CHAPTER_CARD = "https://mooc1-api.chaoxing.com/knowledge/cards"
@@ -27,13 +24,13 @@ class PointDocumentDto:
     session: SessionWraper
     acc: AccountInfo
     # 基本参数
-    clazzid: int
-    courseid: int
-    knowledgeid: int
+    clazz_id: int
+    course_id: int
+    knowledge_id: int
     card_index: int  # 卡片索引位置
     cpi: int
     # 文档参数
-    objectid: str
+    object_id: str
     jobid: str
     title: str
     jtoken: str
@@ -52,21 +49,25 @@ class PointDocumentDto:
         self.logger = Logger("PointDocument")
         self.session = session
         self.acc = acc
-        self.clazzid = clazz_id
-        self.courseid = course_id
-        self.knowledgeid = knowledge_id
+        self.clazz_id = clazz_id
+        self.course_id = course_id
+        self.knowledge_id = knowledge_id
         self.card_index = card_index
-        self.objectid = object_id
+        self.object_id = object_id
         self.cpi = cpi
 
+    def __str__(self) -> str:
+        return f"PointDocument(title={self.title} jobid={self.object_id} dtoken={self.jtoken})"
+    
     def pre_fetch(self) -> bool:
-        "预拉取文档  返回是否需要完成"
+        """预拉取文档  返回是否需要完成
+        """
         resp = self.session.get(
             PAGE_MOBILE_CHAPTER_CARD,
             params={
-                "clazzid": self.clazzid,
-                "courseid": self.courseid,
-                "knowledgeid": self.knowledgeid,
+                "clazzid": self.clazz_id,
+                "courseid": self.course_id,
+                "knowledgeid": self.knowledge_id,
                 "num": self.card_index,
                 "isPhone": 1,
                 "control": "true",
@@ -87,7 +88,7 @@ class PointDocumentDto:
             # 定位资源objectid
             for point in attachment["attachments"]:
                 if prop := point.get("property"):
-                    if prop.get("objectid") == self.objectid:
+                    if prop.get("objectid") == self.object_id:
                         break
             else:
                 self.logger.warning("定位任务资源失败")
@@ -104,19 +105,16 @@ class PointDocumentDto:
             self.logger.error(f"预拉取失败")
             raise RuntimeError("文档预拉取出错")
 
-    def fetch(self) -> bool:
-        "拉取文档"
-        return True  # 文档类型无需二次拉取
-
-    def __report_reading(self):
-        "上报文档阅读记录"
+    def report(self):
+        """上报文档阅读记录
+        """
         resp = self.session.get(
             API_DOCUMENT_READINGREPORT,
             params={
                 "jobid": self.jobid,
-                "knowledgeid": self.knowledgeid,
-                "courseid": self.courseid,
-                "clazzid": self.clazzid,
+                "knowledgeid": self.knowledge_id,
+                "courseid": self.course_id,
+                "clazzid": self.clazz_id,
                 "jtoken": self.jtoken,
                 "_dc": get_ts(),
             },
@@ -124,21 +122,10 @@ class PointDocumentDto:
         resp.raise_for_status()
         json_content = resp.json()
         self.logger.debug(f"上报 resp: {json_content}")
+        if error := json_content.get("error"):
+            self.logger.error(f"文档上报失败")
+            raise APIError(error)
+        self.logger.info(f"文档上报成功")
         return json_content
-
-    def watch(self, tui_ctx: Layout) -> None:
-        "开始模拟阅读文档"
-        inspect = Layout()
-        tui_ctx.split_column(Panel(f"模拟浏览：{self.title}", title="正在模拟浏览"), inspect)
-        report_result = self.__report_reading()
-        j = JSON.from_data(report_result, ensure_ascii=False)
-        if report_result["status"]:
-            inspect.update(Panel(j, title="上报成功", border_style="green"))
-            self.logger.info(f"文档浏览上报成功 [{self.title}(O.{self.objectid}/J.{self.jobid})]")
-        else:
-            self.logger.warning(f"文档浏览上报失败 [{self.title}(O.{self.objectid}/J.{self.jobid})]")
-            inspect.update(Panel(j, title="上报失败", border_style="red"))
-        time.sleep(1.0)
-
 
 __all__ = ["PointDocumentDto"]
