@@ -1,6 +1,7 @@
 import re
 import time
 from enum import Enum, auto
+from os import PathLike
 from typing import Callable
 
 import cv2
@@ -15,8 +16,8 @@ from yarl import URL
 
 from logger import Logger
 
-from . import get_ua
-from .exception import HandleCaptchaError
+from . import get_ts, get_ua
+from .exception import APIError, HandleCaptchaError
 
 # 接口-获取验证码图片
 API_CAPTCHA_IMG = "https://mooc1-api.chaoxing.com/processVerifyPng.ac"
@@ -26,6 +27,12 @@ API_CAPTCHA_COMMIT = "https://mooc1-api.chaoxing.com/html/processVerify.ac"
 
 # 接口-提交人脸识别结果
 API_FACE_SUBMIT_INFO = "https://mooc1-api.chaoxing.com/mooc-ans/knowledge/uploadInfo"
+
+# 接口-获取云盘 token
+API_GET_PAN_TOKEN = "https://pan-yz.chaoxing.com/api/token/uservalid"
+
+# 接口-上传人脸图片
+API_UPLOAD_FACE = "https://pan-yz.chaoxing.com/upload"
 
 ocr = DdddOcr(show_ad=False)
 
@@ -91,8 +98,10 @@ class SessionWraper(Session):
     """
 
     logger: Logger  # 日志记录器
-    __cb_resolve_captcha_after: Callable[[int], None] = None  # 验证码识别前回调
-    __cb_resolve_captcha_before: Callable[[bool, str], None] = None  # 验证码识别后回调
+    __cb_resolve_captcha_after: Callable[[int], None]  # 验证码识别前回调
+    __cb_resolve_captcha_before: Callable[[bool, str], None]  # 验证码识别后回调
+    __cb_resolve_face_after: Callable  # 人脸识别前回调
+    __cb_resolve_face_before: Callable  # 人脸识别后回调
     __captcha_max_retry: int  # 验证码最大重试
     __request_max_retry: int  # 连接最大重试
     __request_retry_cnt: int  # 连接重试计数
@@ -143,6 +152,14 @@ class SessionWraper(Session):
         else:
             print(f"验证码识别成功：{code}，提交错误，10S 后重试")
 
+    def __cb_resolve_face_after(self):
+        """识别人脸前 默认回调"""
+        print("开始上传人脸")
+
+    def __cb_resolve_face_before(self):
+        """识别人脸后 默认回调"""
+        print("人脸提交成功")
+
     def reg_captcha_after(self, cb: Callable[[int], None]):
         """注册验证码识别前回调
         Args:
@@ -182,12 +199,12 @@ class SessionWraper(Session):
                 # 递归重发请求
                 resp = self.request(*args, **kwargs)
                 return resp
-            
+
             case SpecialPageType.FACE:
                 # 人脸识别
                 self.__handle_face_detection(resp)
                 # TODO: 处理成功后重发
-                
+
             case SpecialPageType.NORMAL:
                 # 正常响应
                 return resp
@@ -263,10 +280,62 @@ class SessionWraper(Session):
         class_id = face_url.query.get("clazzid")
         course_id = face_url.query.get("courseid")
         knowledge_id = face_url.query.get("knowledgeid")
+
+        time.sleep(5.0)
+        self.__cb_resolve_face_after()
+        # token = self.__get_face_upload_token()
+
         # TODO: 上传及提交实现
         ...
 
-    def __submit_faceinfo(self, class_id, course_id, knowledge_id, object_id):
+    def __get_face_upload_token(self) -> str:
+        """获取云盘 token (用于上传人脸)
+        Returns:
+            str: 云盘 token
+        """
+        resp = self.get(API_GET_PAN_TOKEN)
+        json_content = resp.json()
+        if json_content.get("result") is not True:
+            raise APIError
+        token = json_content["_token"]
+        self.logger.debug(f"云盘token获取成功 {token}")
+        return token
+
+    def __upload_face(self, token: str, face_img: str | PathLike) -> str:
+        """上传人脸照片
+        Args:
+            token: 云盘 token
+            face_img: 待上传的人脸图片路径
+        Returns:
+            str: 上传后的对象 objectId
+        """
+        resp = self.post(
+            API_UPLOAD_FACE,
+            params={
+                "uploadtype": "face",
+                "_token": token,
+            },
+            files={
+                "file": (f"{get_ts()}.jpg", open(face_img, "rb"), "image/jpeg"),
+            },
+        )
+        json_content = resp.json()
+        self.logger.debug(f"人脸上传 resp:{json_content}")
+        if json_content.get("result") is not True:
+            self.logger.error("人脸上传失败")
+            raise APIError
+        object_id = json_content["objectId"]
+        url = json_content["data"]["previewUrl"]
+        self.logger.info(f"人脸上传成功 I.{object_id}/U.{url}")
+        return object_id
+
+    def __submit_faceinfo(
+        self,
+        class_id: str,
+        course_id: str,
+        knowledge_id: str,
+        object_id: str,
+    ) -> None:
         """提交人脸识别信息
         Args:
             class_id course_id knowledge_id: 课程信息 id
@@ -284,8 +353,11 @@ class SessionWraper(Session):
             },
         )
         json_content = resp.json()
-        # TODO: 解析接口返回数据
-        ...
+        if json_content.get("status") is not True:
+            message = json_content.get("msg")
+            self.logger.error(f"人脸识别提交失败 {message}")
+            raise APIError
+        self.logger.info("人脸识别提交成功")
 
     def ck_load(self, ck: dict[str, str]) -> None:
         """加载 dict 格式的 ck

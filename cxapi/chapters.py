@@ -30,16 +30,17 @@ class ChapterContainer:
     """课程章节容器
     用于获取章节任务点
     """
+
     logger: Logger
     session: SessionWraper
     acc: AccountInfo
     chapters: list[ChapterModel]
     # 课程参数
-    course_id: int   # 课程 id
-    name: str       # 课程名
-    clazz_id: int    # 班级 id
+    course_id: int  # 课程 id
+    name: str  # 课程名
+    clazz_id: int  # 班级 id
     cpi: int
-    
+
     tui_index: int  # TUI 列表指针索引值
 
     def __init__(
@@ -60,7 +61,7 @@ class ChapterContainer:
         self.name = name
         self.cpi = cpi
         self.chapters = chapters
-        
+
         self.tui_index = 0
 
     def __len__(self) -> int:
@@ -78,7 +79,7 @@ class ChapterContainer:
     def set_tui_index(self, index: int):
         "设置 TUI 指针位置"
         self.tui_index = index
-    
+
     def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
         "渲染章节列表到 TUI"
         total = len(self.chapters)
@@ -96,21 +97,29 @@ class ChapterContainer:
             chapter = self.chapters[ptr]
             # 判断是否已完成章节任务
             yield Group(
-                Text("❱", style=Style(color="red", bold=True), end="") if ptr == self.tui_index else Text("", end=""),
+                Text("❱", style=Style(color="red", bold=True), end="")
+                if ptr == self.tui_index
+                else Text("", end=""),
                 Padding(
                     Styled(
                         Group(
-                            Text(f"{chapter.label}: ", style=Style(color="green", bold=True), end=""),
+                            Text(
+                                f"{chapter.label}: ",
+                                style=Style(color="green", bold=True),
+                                end="",
+                            ),
                             Text(
                                 f"({chapter.point_finished}/{chapter.point_total}) {chapter.name}",
                                 style=Style(
-                                    color="green" if self.is_finished(ptr) else ("white" if chapter.point_finished == 0 else "yellow")
+                                    color="green"
+                                    if self.is_finished(ptr)
+                                    else ("white" if chapter.point_finished == 0 else "yellow")
                                 ),
                                 end="",
-                                overflow="ellipsis"
-                            )
+                                overflow="ellipsis",
+                            ),
                         ),
-                        style=Style(bold=ptr == self.tui_index)
+                        style=Style(bold=ptr == self.tui_index),
                     ),
                     pad=(0, 0, 0, chapter.layer * 2),
                 ),
@@ -140,10 +149,10 @@ class ChapterContainer:
 
     def __getitem__(self, key: int) -> list[TaskPointType]:
         return self.fetch_points_by_index(key)
-    
+
     def __len__(self) -> int:
         return len(self.chapters)
-    
+
     def fetch_points_by_index(self, index: int) -> list[TaskPointType]:
         "以课程序号拉取对应“章节”的任务节点卡片资源"
         params = {
@@ -155,17 +164,21 @@ class ChapterContainer:
             "_time": get_ts(),
         }
         resp = self.session.get(
-            API_CHAPTER_CARDS, params={**params, "inf_enc": calc_infenc(params)}
+            API_CHAPTER_CARDS,
+            params={
+                **params,
+                "inf_enc": calc_infenc(params),
+            },
         )
         resp.raise_for_status()
-        content_json = resp.json()
-        if len(content_json["data"]) == 0:
+        json_content = resp.json()
+        if len(json_content["data"]) == 0:
             self.logger.error(
                 f"获取章节任务节点卡片失败 "
                 f"[{self.chapters[index].label}:{self.chapters[index].name}(Id.{self.chapters[index].chapter_id})]"
             )
             raise APIError
-        cards = content_json["data"][0]["card"]["data"]
+        cards = json_content["data"][0]["card"]["data"]
         self.logger.info(
             f"获取章节任务节点卡片成功 共 {len(cards)} 个 "
             f"[{self.chapters[index].label}:{self.chapters[index].name}(Id.{self.chapters[index].chapter_id})]"
