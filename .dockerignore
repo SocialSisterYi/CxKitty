@@ -4,3 +4,4 @@ session/
 logs/
 questions.*
 export/*
+faces/*

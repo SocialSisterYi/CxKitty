@@ -6,12 +6,16 @@ multi_session: true
 mask_acc: true
 # TUI 最大显示高度 null: 自适应高度
 tui_max_height: 25
+# 尝试拉取预先上传的人脸图片
+fetch_uploaded_face: true
 # 会话存档路径
 session_path: "session/"
 # 日志文件路径
 log_path: "logs/"
 # 试题导出路径
 export_path: "export/"
+# 人脸图片路径
+face_image_path: "faces/"
 
 # --------------------
 

@@ -220,7 +220,7 @@ class ChaoXingAPI:
         resp.raise_for_status()
         file_path = Path(path) / f"{self.acc.puid}.jpg"
         open(file_path, "wb").write(resp.content)
-        self.logger.info(f"人脸保存成功 {file_path}")
+        self.logger.info(f"人脸保存成功 \"{file_path}\"")
 
 
 __all__ = ["ChaoXingAPI"]

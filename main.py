@@ -106,7 +106,7 @@ def fuck_task_worker(chap: ChapterContainer):
                             # 预拉取任务点数据
                             task_point.pre_fetch()
                             # 保存 json 文件
-                            task_point.export(config.EXPORTPATH / f"work_{task_point.work_id}.json")
+                            task_point.export(config.EXPORT_PATH / f"work_{task_point.work_id}.json")
                         
                         # 完成章节测验
                         if config.WORK_EN:
@@ -199,7 +199,7 @@ def fuck_exam_worker(exam: ExamDto, export=False):
         
         # 若开启导出模式, 则不执行自动接管逻辑
         if export is True:
-            export_path = config.EXPORTPATH / f"exam_{exam.exam_id}.json"
+            export_path = config.EXPORT_PATH / f"exam_{exam.exam_id}.json"
             exam.export(export_path)
             live.stop()
             console.print(
@@ -263,6 +263,10 @@ if __name__ == "__main__":
     logger.info("\n-----*任务开始执行*-----")
     dialog.accinfo(console, api)
     try:
+        # 拉取预先上传的人脸图片
+        if config.FETCH_UPLOADED_FACE is True:
+            if face_url := api.fetch_face():
+                api.save_face(face_url, config.FACE_PATH)
         # 拉取该账号下所学的课程
         classes = api.fetch_classes()
         # 课程选择交互

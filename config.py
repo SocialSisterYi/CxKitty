@@ -11,18 +11,20 @@ except FileNotFoundError:
     warnings.warn("Config file not found", RuntimeWarning)
 
 # 路径配置
-SESSIONPATH = Path(conf.get("session_path", "session"))
-LOGPATH = Path(conf.get("log_path", "logs"))
-EXPORTPATH = Path(conf.get("export_path"))
+SESSIONS_PATH = Path(conf.get("session_path", "session"))
+LOGS_PATH = Path(conf.get("log_path", "logs"))
+EXPORT_PATH = Path(conf.get("export_path"))
+FACE_PATH = Path(conf.get("face_image_path"))
 
 # 创建导出目录
-if not EXPORTPATH.exists():
-    EXPORTPATH.mkdir(parents=True)
+if not EXPORT_PATH.exists():
+    EXPORT_PATH.mkdir(parents=True)
 
 # 基本配置
 MULTI_SESS: bool = conf.get("multi_session", True)
 TUI_MAX_HEIGHT: int = conf.get("tui_max_height", 25)
 MASKACC: bool = conf.get("mask_acc", True)
+FETCH_UPLOADED_FACE: bool = conf.get("fetch_uploaded_face", True)
 
 # 任务配置
 WORK: dict = conf.get("work", {})

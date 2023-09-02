@@ -131,3 +131,4 @@ dmypy.json
 session/*.json
 questions.*
 export/*
+faces/*

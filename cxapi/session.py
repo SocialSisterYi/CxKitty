@@ -15,6 +15,7 @@ from requests.sessions import Session
 from yarl import URL
 
 from logger import Logger
+from utils import get_face_path_by_puid
 
 from . import get_ts, get_ua
 from .exception import APIError, HandleCaptchaError
@@ -281,8 +282,9 @@ class SessionWraper(Session):
         course_id = face_url.query.get("courseid")
         knowledge_id = face_url.query.get("knowledgeid")
 
-        time.sleep(5.0)
         self.__cb_resolve_face_after()
+        time.sleep(5.0)
+        # face_image_path = get_face_path_by_puid()
         # token = self.__get_face_upload_token()
 
         # TODO: 上传及提交实现

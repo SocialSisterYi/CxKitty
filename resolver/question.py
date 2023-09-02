@@ -291,7 +291,7 @@ class QuestionResolver:
             type=QuestionsExportType.Exam,
             questions=[q for q, a in self.mistakes]
         )
-        export_path = config.EXPORTPATH / f"mistakes_{int(time.time())}.json"
+        export_path = config.EXPORT_PATH / f"mistakes_{int(time.time())}.json"
         with export_path.open("w", encoding="utf8") as fp:
                 fp.write(schema.to_json(ensure_ascii=False, separators=(",", ":")))
     

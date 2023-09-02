@@ -28,8 +28,8 @@ class Logger:
         else:
             self.fmt = fmt
         
-        if not config.LOGPATH.is_dir():
-            config.LOGPATH.mkdir(parents=True)
+        if not config.LOGS_PATH.is_dir():
+            config.LOGS_PATH.mkdir(parents=True)
         self.logger = logging.getLogger(name)
         self.logger.setLevel(self.level)
         
@@ -39,7 +39,7 @@ class Logger:
         """重载日志记录器实现
         """
         if log_file_name and (not self.logger.handlers):
-            fh = logging.FileHandler(config.LOGPATH / f"cxkitty_{log_file_name}.log", encoding="utf8")
+            fh = logging.FileHandler(config.LOGS_PATH / f"cxkitty_{log_file_name}.log", encoding="utf8")
             fh.setLevel(self.level)
             fh.setFormatter(logging.Formatter(self.fmt))
             self.logger.addHandler(fh)
