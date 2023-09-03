@@ -26,11 +26,20 @@ class SessionModule:
     ck: str
 
 def dict2ck(dict_ck: dict[str, str]) -> str:
-    """序列化dict形式的ck"""
+    """序列化dict形式的ck
+    Args:
+        dict_ck: cookie键值对
+    Returns:
+    """
     return "".join(f"{k}={v};" for k, v in dict_ck.items())
 
 def ck2dict(ck: str) -> dict[str, str]:
-    """解析ck到dict"""
+    """解析ck到dict
+    Args:
+        ck: 序列化cookie字符串
+    Returns:
+        dict[str, str]: cookie键值对
+    """
     result = {}
     for field in ck.strip().split(";"):
         if not field:
@@ -40,7 +49,12 @@ def ck2dict(ck: str) -> dict[str, str]:
     return result
 
 def save_session(ck: dict, acc: AccountInfo, passwd: Optional[str] = None) -> None:
-    """存档会话数据为json"""
+    """存档会话数据为json
+    Args:
+        ck: cookie
+        acc: 用户信息
+        passwd: 密码
+    """
     if not config.SESSIONS_PATH.is_dir():
         config.SESSIONS_PATH.mkdir(parents=True)
     file_path = config.SESSIONS_PATH / f"{acc.phone}.json"
@@ -54,8 +68,11 @@ def save_session(ck: dict, acc: AccountInfo, passwd: Optional[str] = None) -> No
         }
         json.dump(sessdata, fp, ensure_ascii=False)
 
-def sessions_load():
-    """从路径批量读档会话"""
+def sessions_load() -> list[SessionModule]:
+    """从路径批量读档会话
+    Returns:
+        list[SessionModule]: 会话模型列表
+    """
     sessions = []
     if not config.SESSIONS_PATH.is_dir():
         return []
@@ -94,7 +111,7 @@ def mask_phone(phone: str) -> str:
     return phone[:3] + "****" + phone[-4:]
 
 def get_face_path_by_puid(puid: int) -> Path | None:
-    """获取并随机选择该puid所属的人脸图片路径
+    """获取并随机选择该 puid 所属的人脸图片路径
     Args:
         puid: 用户 puid
     Returns:

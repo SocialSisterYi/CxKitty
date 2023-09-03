@@ -18,13 +18,14 @@ from logger import Logger
 from utils import get_face_path_by_puid
 
 from . import get_ts, get_ua
-from .exception import APIError, HandleCaptchaError
+from .exception import APIError, FaceDetectionError, HandleCaptchaError
+from .schema import AccountInfo
 
 # 接口-获取验证码图片
 API_CAPTCHA_IMG = "https://mooc1-api.chaoxing.com/processVerifyPng.ac"
 
 # 接口-提交验证码并重定向至原请求
-API_CAPTCHA_COMMIT = "https://mooc1-api.chaoxing.com/html/processVerify.ac"
+API_CAPTCHA_SUBMIT = "https://mooc1-api.chaoxing.com/html/processVerify.ac"
 
 # 接口-提交人脸识别结果
 API_FACE_SUBMIT_INFO = "https://mooc1-api.chaoxing.com/mooc-ans/knowledge/uploadInfo"
@@ -86,7 +87,7 @@ def get_special_type(resp: Response) -> SpecialPageType:
         html = BeautifulSoup(resp.text, "lxml")
         if e := html.select_one("body.grayBg script"):
             if re.search(
-                r"var url = ServerHost.moocDomain \+ _CP_ \+ \"/knowledge/startface",
+                r"var url = \S+ \+ _CP_ \+ \"/knowledge/startface",
                 e.text,
             ):
                 return SpecialPageType.FACE
@@ -99,10 +100,11 @@ class SessionWraper(Session):
     """
 
     logger: Logger  # 日志记录器
+    acc: AccountInfo  # 用户账号信息
     __cb_resolve_captcha_after: Callable[[int], None]  # 验证码识别前回调
     __cb_resolve_captcha_before: Callable[[bool, str], None]  # 验证码识别后回调
-    __cb_resolve_face_after: Callable  # 人脸识别前回调
-    __cb_resolve_face_before: Callable  # 人脸识别后回调
+    __cb_resolve_face_after: Callable[..., None]  # 人脸识别前回调
+    __cb_resolve_face_before: Callable[[str, PathLike], None]  # 人脸识别后回调
     __captcha_max_retry: int  # 验证码最大重试
     __request_max_retry: int  # 连接最大重试
     __request_retry_cnt: int  # 连接重试计数
@@ -157,9 +159,9 @@ class SessionWraper(Session):
         """识别人脸前 默认回调"""
         print("开始上传人脸")
 
-    def __cb_resolve_face_before(self):
+    def __cb_resolve_face_before(self, object_id: str, image_path: PathLike):
         """识别人脸后 默认回调"""
-        print("人脸提交成功")
+        print(f"人脸提交成功：path={image_path}，objectId={object_id}")
 
     def reg_captcha_after(self, cb: Callable[[int], None]):
         """注册验证码识别前回调
@@ -175,6 +177,20 @@ class SessionWraper(Session):
         """
         self.__cb_resolve_captcha_before = cb
 
+    def reg_face_after(self, cb: Callable[..., None]):
+        """注册人脸识别前回调
+        Args:
+            cb: 回调函数
+        """
+        self.__cb_resolve_face_after = cb
+
+    def reg_face_before(self, cb: Callable[[str, PathLike], None]):
+        """注册人脸识别后回调
+        Args:
+            cb: 回调函数
+        """
+        self.__cb_resolve_face_before = cb
+    
     def request(self, *args, **kwargs) -> Response:
         """ "requests.Session.request 的 hook 函数
         Args:
@@ -204,7 +220,9 @@ class SessionWraper(Session):
             case SpecialPageType.FACE:
                 # 人脸识别
                 self.__handle_face_detection(resp)
-                # TODO: 处理成功后重发
+                # 递归重发请求
+                resp = self.request(*args, **kwargs)
+                return resp
 
             case SpecialPageType.NORMAL:
                 # 正常响应
@@ -224,7 +242,7 @@ class SessionWraper(Session):
                 continue
             captcha_code = identify_captcha(captcha_img)
             self.logger.info(f"验证码已识别 {captcha_code}")
-            status = self.__commit_captcha(captcha_code)
+            status = self.__submit_captcha(captcha_code)
 
             self.__cb_resolve_captcha_before(status, captcha_code)
             if status is True:
@@ -248,13 +266,13 @@ class SessionWraper(Session):
         self.logger.info(f"验证码图片已获取 (大小 {len(resp.content) / 1024:.2f}KB)")
         return resp.content
 
-    def __commit_captcha(self, code: str) -> bool:
+    def __submit_captcha(self, code: str) -> bool:
         """提交验证码
         Args:
             code: 验证码
         """
         resp = self.post(
-            API_CAPTCHA_COMMIT,
+            API_CAPTCHA_SUBMIT,
             data={
                 "app": 0,
                 "ucode": code,
@@ -284,11 +302,17 @@ class SessionWraper(Session):
 
         self.__cb_resolve_face_after()
         time.sleep(5.0)
-        # face_image_path = get_face_path_by_puid()
-        # token = self.__get_face_upload_token()
+        if face_image_path := get_face_path_by_puid(self.acc.puid):
+            self.logger.info(f'找到待上传人脸 "{face_image_path}"')
+            token = self.__get_face_upload_token()
+            object_id = self.__upload_face(token, self.acc.puid, face_image_path)
+            self.__submit_faceinfo(class_id, course_id, knowledge_id, object_id)
 
-        # TODO: 上传及提交实现
-        ...
+            self.__cb_resolve_face_before(object_id, face_image_path)
+            time.sleep(5.0)
+        else:
+            self.logger.error("未找到待上传人脸")
+            raise FaceDetectionError
 
     def __get_face_upload_token(self) -> str:
         """获取云盘 token (用于上传人脸)
@@ -303,7 +327,7 @@ class SessionWraper(Session):
         self.logger.debug(f"云盘token获取成功 {token}")
         return token
 
-    def __upload_face(self, token: str, face_img: str | PathLike) -> str:
+    def __upload_face(self, token: str, puid: int, face_img: str | PathLike) -> str:
         """上传人脸照片
         Args:
             token: 云盘 token
@@ -316,6 +340,7 @@ class SessionWraper(Session):
             params={
                 "uploadtype": "face",
                 "_token": token,
+                "puid": puid,
             },
             files={
                 "file": (f"{get_ts()}.jpg", open(face_img, "rb"), "image/jpeg"),
@@ -345,7 +370,7 @@ class SessionWraper(Session):
         """
         resp = self.post(
             API_FACE_SUBMIT_INFO,
-            json={
+            data={
                 "clazzId": class_id,
                 "courseId": course_id,
                 "knowledgeId": knowledge_id,

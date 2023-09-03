@@ -4,6 +4,9 @@ class APIError(Exception):
 class HandleCaptchaError(Exception):
     "处理风控验证码时错误"
 
+class FaceDetectionError(Exception):
+    "人脸识别错误"
+
 # 任务点相关
 class TaskPointError(APIError):
     "任务点错误"

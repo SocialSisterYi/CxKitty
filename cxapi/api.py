@@ -46,7 +46,6 @@ class ChaoXingAPI:
 
     logger: Logger  # 日志记录器
     session: SessionWraper  # HTTP 会话封装
-    acc: AccountInfo  # 用户账号信息
     # 二维码登录用
     qr_uuid: str
     qr_enc: str
@@ -59,6 +58,14 @@ class ChaoXingAPI:
         self.logger = Logger("RootAPI")
         self.session = SessionWraper()
 
+    @property
+    def acc(self) -> AccountInfo:
+        return self.session.acc
+    
+    @acc.setter
+    def acc(self, value: AccountInfo) -> None:
+        self.session.acc = value
+    
     def login_passwd(self, phone: str, passwd: str) -> tuple[bool, dict]:
         """以 web 方式使用手机号+密码账号
         Args:
@@ -218,7 +225,10 @@ class ChaoXingAPI:
         """
         resp = self.session.get(face_url)
         resp.raise_for_status()
-        file_path = Path(path) / f"{self.acc.puid}.jpg"
+        path = Path(path)
+        if not path.is_dir():
+            path.mkdir(parents=True)
+        file_path = path / f"{self.acc.puid}.jpg"
         open(file_path, "wb").write(resp.content)
         self.logger.info(f"人脸保存成功 \"{file_path}\"")
 
