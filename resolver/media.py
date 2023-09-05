@@ -8,7 +8,7 @@ from rich.panel import Panel
 from rich.progress import Progress
 
 from cxapi.exception import APIError
-from cxapi.jobs.video import PointVideoDto
+from cxapi.task_point import PointVideoDto
 from logger import Logger
 
 

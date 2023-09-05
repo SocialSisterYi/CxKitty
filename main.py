@@ -22,8 +22,8 @@ from cxapi import (
     PointDocumentDto,
     PointVideoDto,
     PointWorkDto,
-    TaskPointError,
 )
+from cxapi.exception import ChapterNotOpened, TaskPointError
 from logger import Logger
 from resolver import DocumetResolver, MediaPlayResolver, QuestionResolver
 from utils import ck2dict, sessions_load
@@ -159,6 +159,22 @@ def fuck_task_worker(chap: ChapterContainer):
                 continue
             # 获取当前章节的所有任务点, 并遍历
             for task_point in chap[index]:
+                # 拉取任务卡片 Attachment
+                try:
+                    task_point.fetch_attachment()
+                except ChapterNotOpened:
+                    lay_left.unsplit()
+                    lay_left.update(
+                        Panel(
+                            Align.center(
+                                f"[red]章节【{chap.chapters[index].label}】《{chap.chapters[index].name}》未开放\n程序无法继续执行！",
+                                vertical="middle",
+                            ),
+                            border_style="red",
+                        )
+                    )
+                    logger.error("\n-----*未开放章节, 程序异常退出*-----")
+                    sys.exit()
                 try:
                     # 开始分类讨论任务点类型
                     # 章节测验类型
@@ -167,8 +183,7 @@ def fuck_task_worker(chap: ChapterContainer):
                     ):
                         # 导出作业试题
                         if config.WORK["export"] is True:
-                            # 预拉取任务点数据
-                            task_point.pre_fetch()
+                            task_point.parse_attachment()
                             # 保存 json 文件
                             task_point.export(
                                 config.EXPORT_PATH / f"work_{task_point.work_id}.json"
@@ -176,8 +191,7 @@ def fuck_task_worker(chap: ChapterContainer):
 
                         # 完成章节测验
                         if config.WORK_EN:
-                            # 预拉取任务点数据
-                            if not task_point.pre_fetch():
+                            if not task_point.parse_attachment():
                                 continue
                             task_point.fetch_all()
                             # 实例化解决器
@@ -195,8 +209,7 @@ def fuck_task_worker(chap: ChapterContainer):
 
                     # 视频类型
                     elif isinstance(task_point, PointVideoDto) and config.VIDEO_EN:
-                        # 预拉取任务点数据
-                        if not task_point.pre_fetch():
+                        if not task_point.parse_attachment():
                             continue
                         # 拉取取任务点数据
                         if not task_point.fetch():
@@ -216,8 +229,7 @@ def fuck_task_worker(chap: ChapterContainer):
 
                     # 文档类型
                     elif isinstance(task_point, PointDocumentDto) and config.DOCUMENT_EN:
-                        # 预拉取任务点数据
-                        if not task_point.pre_fetch():
+                        if not task_point.parse_attachment():
                             continue
                         # 实例化解决器
                         resolver = DocumetResolver(document_dto=task_point)

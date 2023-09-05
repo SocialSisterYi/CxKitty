@@ -10,11 +10,9 @@ from rich.text import Text
 from logger import Logger
 
 from .exception import APIError
-from .jobs.document import PointDocumentDto
-from .jobs.video import PointVideoDto
-from .jobs.work import PointWorkDto
 from .schema import AccountInfo, ChapterModel
 from .session import SessionWraper
+from .task_point import PointDocumentDto, PointVideoDto, PointWorkDto
 from .utils import calc_infenc, get_ts
 
 TaskPointType = PointWorkDto | PointVideoDto | PointDocumentDto
@@ -38,7 +36,7 @@ class ChapterContainer:
     # 课程参数
     course_id: int  # 课程 id
     name: str  # 课程名
-    clazz_id: int  # 班级 id
+    class_id: int  # 班级 id
     cpi: int
 
     tui_index: int  # TUI 列表指针索引值
@@ -49,7 +47,7 @@ class ChapterContainer:
         acc: AccountInfo,
         courseid: int,
         name: str,
-        clazzid: int,
+        classid: int,
         cpi: int,
         chapters: list[ChapterModel],
     ) -> None:
@@ -57,7 +55,7 @@ class ChapterContainer:
         self.session = session
         self.acc = acc
         self.course_id = courseid
-        self.clazz_id = clazzid
+        self.class_id = classid
         self.name = name
         self.cpi = cpi
         self.chapters = chapters
@@ -132,7 +130,7 @@ class ChapterContainer:
             data={
                 "view": "json",
                 "nodes": ",".join(str(c.chapter_id) for c in self.chapters),
-                "clazzid": self.clazz_id,
+                "clazzid": self.class_id,
                 "time": get_ts(),
                 "userid": self.acc.puid,
                 "cpi": self.cpi,
@@ -209,13 +207,13 @@ class ChapterContainer:
                         point_objs.append(
                             PointVideoDto(
                                 session=self.session,
-                                acc=self.acc,
                                 card_index=card_index,
                                 course_id=self.course_id,
+                                class_id=self.class_id,
                                 knowledge_id=self.chapters[index].chapter_id,
-                                object_id=json_data["objectid"],
-                                clazz_id=self.clazz_id,
                                 cpi=self.cpi,
+                                # 任务点附加
+                                object_id=json_data["objectid"],
                             )
                         )
                         self.logger.debug(
@@ -226,15 +224,15 @@ class ChapterContainer:
                         point_objs.append(
                             PointWorkDto(
                                 session=self.session,
-                                acc=self.acc,
                                 card_index=card_index,
                                 course_id=self.course_id,
+                                class_id=self.class_id,
+                                knowledge_id=self.chapters[index].chapter_id,
+                                cpi=self.cpi,
+                                # 任务点附加
                                 work_id=json_data["workid"],
                                 school_id=json_data.get("schoolid"),
                                 job_id=json_data["_jobid"],
-                                knowledge_id=self.chapters[index].chapter_id,
-                                clazz_id=self.clazz_id,
-                                cpi=self.cpi,
                             )
                         )
                         self.logger.debug(
@@ -245,12 +243,12 @@ class ChapterContainer:
                         point_objs.append(
                             PointDocumentDto(
                                 session=self.session,
-                                acc=self.acc,
                                 card_index=card_index,
                                 course_id=self.course_id,
+                                class_id=self.class_id,
                                 knowledge_id=self.chapters[index].chapter_id,
-                                clazz_id=self.clazz_id,
                                 cpi=self.cpi,
+                                # 任务点附加
                                 object_id=json_data["objectid"],
                             )
                         )

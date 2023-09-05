@@ -6,7 +6,7 @@ from rich.layout import Layout
 from rich.panel import Panel
 
 from cxapi.exception import APIError
-from cxapi.jobs.document import PointDocumentDto
+from cxapi.task_point import PointDocumentDto
 from logger import Logger
 
 

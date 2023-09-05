@@ -7,6 +7,9 @@ class HandleCaptchaError(Exception):
 class FaceDetectionError(Exception):
     "人脸识别错误"
 
+class ChapterNotOpened(APIError):
+    "章节未开放"
+
 # 任务点相关
 class TaskPointError(APIError):
     "任务点错误"

@@ -1,4 +1,3 @@
-import json
 import re
 from pathlib import Path
 from typing import Literal
@@ -7,23 +6,13 @@ from bs4 import BeautifulSoup, Tag
 
 from logger import Logger
 
-from ..base import QAQDtoBase
+from ..base import QAQDtoBase, TaskPointBase
 from ..exception import PointWorkError, WorkAccessDenied
-from ..schema import (
-    AccountInfo,
-    QuestionModel,
-    QuestionsExportSchema,
-    QuestionsExportType,
-    QuestionType,
-)
-from ..session import SessionWraper
+from ..schema import QuestionModel, QuestionsExportSchema, QuestionsExportType, QuestionType
 from ..utils import remove_escape_chars
 
 # 接口-单元作业答题提交
 API_WORK_COMMIT = "https://mooc1-api.chaoxing.com/work/addStudentWorkNew"
-
-# SSR页面-客户端章节任务卡片
-PAGE_MOBILE_CHAPTER_CARD = "https://mooc1-api.chaoxing.com/knowledge/cards"
 
 # SSR页面-客户端单元测验答题页
 PAGE_MOBILE_WORK = "https://mooc1-api.chaoxing.com/android/mworkspecial"
@@ -119,20 +108,9 @@ def construct_questions_form(questions: list[QuestionModel]) -> dict[str, int | 
     return form
 
 
-class PointWorkDto(QAQDtoBase):
+class PointWorkDto(TaskPointBase, QAQDtoBase):
     """作业任务点接口 (手机客户端协议)"""
 
-    logger: Logger
-    session: SessionWraper
-    acc: AccountInfo
-    # 基本参数
-    card_index: int  # 卡片索引位置
-    point_index: int  # 任务点索引位置
-    course_id: int
-    knowledge_id: int
-    cpi: int
-    class_id: int
-    # 考试参数
     title: str
     work_id: str
     school_id: str
@@ -150,72 +128,32 @@ class PointWorkDto(QAQDtoBase):
     # 当前作业的全部题目
     questions: list[QuestionModel]
 
-    def __init__(
-        self,
-        session: SessionWraper,
-        acc: AccountInfo,
-        card_index: int,
-        course_id: int,
-        work_id: str,
-        school_id: str,
-        job_id: str,
-        knowledge_id: int,
-        clazz_id: int,
-        cpi: int,
-    ) -> None:
+    def __init__(self, work_id: str, school_id: str, job_id: str, **kwargs) -> None:
+        super(PointWorkDto, self).__init__(**kwargs)
+        super(TaskPointBase, self).__init__()
         self.logger = Logger("PointWork")
-        self.session = session
-        self.acc = acc
 
-        self.card_index = card_index
-        self.course_id = course_id
         self.work_id = work_id
         self.school_id = school_id
         self.job_id = job_id
-        self.knowledge_id = knowledge_id
-        self.class_id = clazz_id
-        self.cpi = cpi
 
         self.questions = []
-        super().__init__()
 
-    def pre_fetch(self) -> bool:
-        """预拉取试题
+    def parse_attachment(self) -> bool:
+        """解析任务点卡片 Attachment
         Returns:
             bool: 是否需要完成
         """
-        resp = self.session.get(
-            PAGE_MOBILE_CHAPTER_CARD,
-            params={
-                "clazzid": self.class_id,
-                "courseid": self.course_id,
-                "knowledgeid": self.knowledge_id,
-                "num": self.card_index,
-                "isPhone": 1,
-                "control": "true",
-                "cpi": self.cpi,
-            },
-        )
-        resp.raise_for_status()
-        html = BeautifulSoup(resp.text, "lxml")
         try:
-            if r := re.search(
-                r"window\.AttachmentSetting *= *(.+?);",
-                html.head.find("script", type="text/javascript").text,
-            ):
-                attachment = json.loads(r.group(1))
-            else:
-                raise ValueError
-            self.logger.debug(f"attachment: {attachment}")
             # 定位资源 workid
-            for point in attachment["attachments"]:
+            for point in self.attachment["attachments"]:
                 if prop := point.get("property"):
                     if prop.get("workid") == self.work_id:
                         break
             else:
                 self.logger.warning("定位任务资源失败")
                 return False
-            self.ktoken = attachment["defaults"]["ktoken"]
+            self.ktoken = self.attachment["defaults"]["ktoken"]
             self.enc = point["enc"]
             if (job := point.get("job")) is not None:
                 needtodo = job in (True, None)  # 这里有部分试题不存在`job`字段
@@ -223,10 +161,10 @@ class PointWorkDto(QAQDtoBase):
             else:
                 # self.need_jobid = False
                 needtodo = True
-            self.logger.info("预拉取成功")
+            self.logger.info("解析Attachment成功")
         except Exception:
-            self.logger.error("预拉取失败")
-            raise RuntimeError("试题预拉取出错")
+            self.logger.error("解析Attachment失败")
+            raise RuntimeError("解析试题Attachment出错")
         return needtodo
 
     def __str__(self) -> str:
@@ -274,7 +212,7 @@ class PointWorkDto(QAQDtoBase):
                 "jobid": self.job_id,
                 "needRedirect": "true",
                 "knowledgeid": self.knowledge_id,
-                "userid": self.acc.puid,
+                "userid": self.session.acc.puid,
                 "ut": "s",
                 "clazzId": self.class_id,
                 "cpi": self.cpi,
@@ -374,7 +312,7 @@ class PointWorkDto(QAQDtoBase):
                 "workRelationId": self.work_relation_id,
                 "enc_work": self.enc_work,
                 "isphone": "true",
-                "userId": self.acc.puid,
+                "userId": self.session.acc.puid,
                 "workTimesEnc": "",
                 # 构建答题提交表单
                 **construct_questions_form(self.questions),
@@ -430,7 +368,7 @@ class PointWorkDto(QAQDtoBase):
                 "workRelationId": self.work_relation_id,
                 "enc_work": self.enc_work,
                 "isphone": "true",
-                "userId": self.acc.puid,
+                "userId": self.session.acc.puid,
                 "workTimesEnc": "",
                 # 构建答题提交表单
                 **construct_questions_form(self.questions),

@@ -1,20 +1,12 @@
-import json
-import re
 import time
 import urllib.parse
 from hashlib import md5
 
-from bs4 import BeautifulSoup
-
 from logger import Logger
 
+from ..base import TaskPointBase
 from ..exception import APIError
-from ..schema import AccountInfo
-from ..session import SessionWraper
 from ..utils import get_ts
-
-# SSR页面-客户端章节任务卡片
-PAGE_MOBILE_CHAPTER_CARD = "https://mooc1-api.chaoxing.com/knowledge/cards"
 
 # 接口-课程章节卡片资源
 API_CHAPTER_CARD_RESOURCE = "https://mooc1-api.chaoxing.com/ananas/status"
@@ -23,19 +15,9 @@ API_CHAPTER_CARD_RESOURCE = "https://mooc1-api.chaoxing.com/ananas/status"
 API_VIDEO_PLAYREPORT = "https://mooc1-api.chaoxing.com/multimedia/log/a"
 
 
-class PointVideoDto:
+class PointVideoDto(TaskPointBase):
     """任务点视频接口"""
 
-    logger: Logger
-    session: SessionWraper
-    acc: AccountInfo
-    # 基本参数
-    clazz_id: int
-    course_id: int
-    knowledge_id: int
-    card_index: int  # 卡片索引位置
-    cpi: int
-    # 视频参数
     object_id: str
     fid: int
     dtoken: str
@@ -45,79 +27,41 @@ class PointVideoDto:
     title: str  # 视频标题
     rt: float
 
-    def __init__(
-        self,
-        session: SessionWraper,
-        acc: AccountInfo,
-        clazz_id: int,
-        course_id: int,
-        knowledge_id: int,
-        card_index: int,
-        object_id: str,
-        cpi: int,
-    ) -> None:
+    def __init__(self, object_id: str, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.logger = Logger("PointVideo")
-        self.session = session
-        self.acc = acc
-        self.clazz_id = clazz_id
-        self.course_id = course_id
-        self.knowledge_id = knowledge_id
-        self.card_index = card_index
         self.object_id = object_id
-        self.cpi = cpi
 
     def __str__(self) -> str:
         return f"PointVideo(title={self.title} duration={self.duration} objectid={self.object_id} dtoken={self.dtoken} jobid={self.job_id})"
 
-    def pre_fetch(self) -> bool:
-        """预拉取视频
+    def parse_attachment(self) -> bool:
+        """解析任务点卡片 Attachment
         Returns:
             bool: 是否需要完成
         """
-        resp = self.session.get(
-            PAGE_MOBILE_CHAPTER_CARD,
-            params={
-                "clazzid": self.clazz_id,
-                "courseid": self.course_id,
-                "knowledgeid": self.knowledge_id,
-                "num": self.card_index,
-                "isPhone": 1,
-                "control": "true",
-                "cpi": self.cpi,
-            },
-        )
-        resp.raise_for_status()
-        html = BeautifulSoup(resp.text, "lxml")
         try:
-            if r := re.search(
-                r"window\.AttachmentSetting *= *(.+?);",
-                html.head.find("script", type="text/javascript").text,
-            ):
-                attachment = json.loads(r.group(1))
-            else:
-                raise ValueError
-            self.logger.debug(f"attachment: {attachment}")
-            self.fid = attachment["defaults"]["fid"]
             # 定位资源objectid
-            for point in attachment["attachments"]:
+            for point in self.attachment["attachments"]:
                 if prop := point.get("property"):
                     if prop.get("objectid") == self.object_id:
                         break
             else:
                 self.logger.warning("定位任务资源失败")
                 return False
+            self.fid = self.attachment["defaults"]["fid"]
             if jobid := point.get("jobid"):
                 self.job_id = jobid
                 self.otherInfo = point["otherInfo"]
                 self.rt = float(point["property"].get("rt", 0.9))
-                self.logger.info("预拉取成功")
+                self.logger.info("解析Attachment成功")
                 return point.get("isPassed") in (False, None)  # 判断是否已完成
             # 非任务点视频不需要完成
             self.logger.info(f"不存在任务已忽略")
             return False
         except Exception:
-            self.logger.error("预拉取失败")
-            raise RuntimeError("视频预拉取出错")
+            self.logger.error("解析Attachment失败")
+            raise RuntimeError("解析视频Attachment出错")
 
     def fetch(self) -> bool:
         """拉取视频"""

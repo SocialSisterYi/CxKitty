@@ -251,7 +251,7 @@ class ClassSelector:
                 session=self.__classes.session,
                 acc=self.__classes.acc,
                 courseid=class_meta.course_id,
-                clazzid=class_meta.class_id,
+                classid=class_meta.class_id,
                 name=class_meta.name,
                 cpi=class_meta.cpi,
                 chapters=chapters,
