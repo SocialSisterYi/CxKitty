@@ -5,10 +5,10 @@ from bs4 import BeautifulSoup
 
 from logger import Logger
 
-from .. import get_ts
+from ..exception import APIError
 from ..schema import AccountInfo
 from ..session import SessionWraper
-from ..exception import APIError 
+from ..utils import get_ts
 
 # SSR页面-客户端章节任务卡片
 PAGE_MOBILE_CHAPTER_CARD = "https://mooc1-api.chaoxing.com/knowledge/cards"
@@ -18,8 +18,8 @@ API_DOCUMENT_READINGREPORT = "https://mooc1.chaoxing.com/ananas/job/document"
 
 
 class PointDocumentDto:
-    """章节文档接口
-    """
+    """章节文档接口"""
+
     logger: Logger
     session: SessionWraper
     acc: AccountInfo
@@ -58,9 +58,11 @@ class PointDocumentDto:
 
     def __str__(self) -> str:
         return f"PointDocument(title={self.title} jobid={self.object_id} dtoken={self.jtoken})"
-    
+
     def pre_fetch(self) -> bool:
-        """预拉取文档  返回是否需要完成
+        """预拉取文档
+        Returns:
+            bool: 是否需要完成
         """
         resp = self.session.get(
             PAGE_MOBILE_CHAPTER_CARD,
@@ -105,8 +107,10 @@ class PointDocumentDto:
             self.logger.error(f"预拉取失败")
             raise RuntimeError("文档预拉取出错")
 
-    def report(self):
+    def report(self) -> dict:
         """上报文档阅读记录
+        Returns:
+            dict: json 响应数据
         """
         resp = self.session.get(
             API_DOCUMENT_READINGREPORT,
@@ -127,5 +131,6 @@ class PointDocumentDto:
             raise APIError(error)
         self.logger.info(f"文档上报成功")
         return json_content
+
 
 __all__ = ["PointDocumentDto"]

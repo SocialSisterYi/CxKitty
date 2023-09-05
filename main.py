@@ -14,14 +14,16 @@ from rich.traceback import install
 
 import config
 import dialog
-from cxapi.api import ChaoXingAPI
-from cxapi.chapters import ChapterContainer
-from cxapi.classes import ClassSelector
-from cxapi.exam import ExamDto
-from cxapi.exception import TaskPointError
-from cxapi.jobs.document import PointDocumentDto
-from cxapi.jobs.video import PointVideoDto
-from cxapi.jobs.work import PointWorkDto
+from cxapi import (
+    ChaoXingAPI,
+    ChapterContainer,
+    ClassSelector,
+    ExamDto,
+    PointDocumentDto,
+    PointVideoDto,
+    PointWorkDto,
+    TaskPointError,
+)
 from logger import Logger
 from resolver import DocumetResolver, MediaPlayResolver, QuestionResolver
 from utils import ck2dict, sessions_load

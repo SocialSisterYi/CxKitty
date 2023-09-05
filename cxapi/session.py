@@ -17,9 +17,9 @@ from yarl import URL
 from logger import Logger
 from utils import get_face_path_by_puid
 
-from . import get_ts, get_ua
 from .exception import APIError, FaceDetectionError, HandleCaptchaError
 from .schema import AccountInfo
+from .utils import get_ts, get_ua
 
 # 接口-获取验证码图片
 API_CAPTCHA_IMG = "https://mooc1-api.chaoxing.com/processVerifyPng.ac"

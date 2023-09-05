@@ -9,13 +9,13 @@ from rich.text import Text
 
 from logger import Logger
 
-from . import calc_infenc, get_ts
 from .exception import APIError
 from .jobs.document import PointDocumentDto
 from .jobs.video import PointVideoDto
 from .jobs.work import PointWorkDto
 from .schema import AccountInfo, ChapterModel
 from .session import SessionWraper
+from .utils import calc_infenc, get_ts
 
 TaskPointType = PointWorkDto | PointVideoDto | PointDocumentDto
 

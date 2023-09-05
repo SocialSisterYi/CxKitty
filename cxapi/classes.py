@@ -9,14 +9,7 @@ from logger import Logger
 from .chapters import ChapterContainer
 from .exam import ExamDto
 from .exception import APIError
-from .schema import (
-    AccountInfo,
-    ChapterModel,
-    ClassExamModule,
-    ClassModule,
-    ClassStatus,
-    ExamStatus
-)
+from .schema import AccountInfo, ChapterModel, ClassExamModule, ClassModule, ClassStatus, ExamStatus
 from .session import SessionWraper
 
 # 接口-课程章节列表
@@ -25,18 +18,19 @@ API_CHAPTER_LST = "https://mooc1-api.chaoxing.com/gas/clazz"
 # SSR页面-课程考试列表
 PAGE_EXAM_LIST = "https://mooc1-api.chaoxing.com/exam/phone/task-list"
 
+
 class ClassContainer:
     "课程接口"
-    logger: Logger              # 日志记录器
-    session: SessionWraper      # HTTP 会话封装
-    acc: AccountInfo            # 用户账号信息
+    logger: Logger  # 日志记录器
+    session: SessionWraper  # HTTP 会话封装
+    acc: AccountInfo  # 用户账号信息
     classes: list[ClassModule]  # 课程信息
 
     def __init__(
         self,
         session: SessionWraper,
         acc: AccountInfo,
-        classes_lst: list[dict]
+        classes_lst: list[dict],
     ) -> None:
         """constructor
         Args:
@@ -92,14 +86,14 @@ class ClassContainer:
         )
         resp.raise_for_status()
         content_json = resp.json()
-        
+
         if len(content_json["data"]) == 0:
             self.logger.error("拉取失败")
             raise APIError
-        
+
         chapter_lst = content_json["data"][0]["course"]["data"][0]["knowledge"]["data"]
         self.logger.debug(f"章节 Resp: {chapter_lst}")
-        
+
         chapters = [
             ChapterModel(
                 chapter_id=cha["id"],
@@ -112,19 +106,18 @@ class ClassContainer:
                 point_total=0,
                 point_finished=0,
             )
-            for cha
-            in chapter_lst
+            for cha in chapter_lst
         ]
-        chapters.sort(key=lambda x: tuple(int(v) for v in x.label.split(".")))  # 按照任务点节点重排顺序
-        
+        # 按照任务点节点重排顺序
+        chapters.sort(key=lambda x: tuple(int(v) for v in x.label.split(".")))
+
         self.logger.info(
             f"获取课程章节成功 (共 {len(chapters)} 个) "
             f"[{self.classes[index].name}(Cou.{self.classes[index].course_id}/Cla.{self.classes[index].class_id})]"
         )
-        
+
         return chapters
-        
-    
+
     def get_exam_by_index(self, index: int) -> list[ClassExamModule]:
         """获取指定课程的考试列表
         Args:
@@ -132,14 +125,14 @@ class ClassContainer:
         Returns:
             list[ClassExamModule]: 考试数据模型列表
         """
-        
+
         resp = self.session.get(
             PAGE_EXAM_LIST,
             params={
-                'courseId': self.classes[index].course_id,
-                'classId': self.classes[index].class_id,
-                'cpi': self.classes[index].cpi
-            }
+                "courseId": self.classes[index].course_id,
+                "classId": self.classes[index].class_id,
+                "cpi": self.classes[index].cpi,
+            },
         )
         resp.raise_for_status()
         html = BeautifulSoup(resp.text, "lxml")
@@ -147,28 +140,34 @@ class ClassContainer:
         if node_exam_lst := html.find("ul", {"class": "nav"}):
             for exam in node_exam_lst.find_all("li"):
                 query_params = URL(exam["data"]).query
-                exams.append(ClassExamModule(
-                    exam_id=int(query_params["taskrefId"]),
-                    course_id=self.classes[index].course_id,
-                    class_id=self.classes[index].class_id,
-                    cpi=self.classes[index].cpi,
-                    enc_task=query_params["enc_task"],
-                    name=exam.p.text,
-                    status=ExamStatus(exam.span.text),
-                    expire_time=t.text if (t := exam.find("span", {"class": "fr"})) else None
-                ))
+                exams.append(
+                    ClassExamModule(
+                        exam_id=int(query_params["taskrefId"]),
+                        course_id=self.classes[index].course_id,
+                        class_id=self.classes[index].class_id,
+                        cpi=self.classes[index].cpi,
+                        enc_task=query_params["enc_task"],
+                        name=exam.p.text,
+                        status=ExamStatus(exam.span.text),
+                        expire_time=t.text if (t := exam.find("span", {"class": "fr"})) else None,
+                    )
+                )
         self.logger.info(
             f"拉取课程考试成功 (共 {len(exams)} 个) "
             f"[{self.classes[index].name}(Cou.{self.classes[index].course_id}/Cla.{self.classes[index].class_id})]"
         )
         return exams
 
+
 # 选择器分段匹配表达式
-RE_SELECTOR_SEG = re.compile(r"^(?P<exam_flag>EXAM *(\((?P<exam_index>\d+)\)|\(#(?P<exam_id>\d+)\))?\|)?((?P<index>\d+)$|(?P<start>\d+)-(?P<end>\d+)$|#(?P<id>\d+)$|\"(?P<name>.*?)\"$)")
+RE_SELECTOR_SEG = re.compile(
+    r"^(?P<exam_flag>EXAM *(\((?P<exam_index>\d+)\)|\(#(?P<exam_id>\d+)\))?\|)?((?P<index>\d+)$|(?P<start>\d+)-(?P<end>\d+)$|#(?P<id>\d+)$|\"(?P<name>.*?)\"$)"
+)
+
 
 class ClassSelector:
     "课程选择器"
-    __mached_indexes: dict[int, dict]   # 匹配的课程索引
+    __mached_indexes: dict[int, dict]  # 匹配的课程索引
     __mached_index_iterator: Iterator[tuple[int, dict]]
     __classes: ClassContainer
 
@@ -224,13 +223,13 @@ class ClassSelector:
             # 选择语句为考试
             exams_lst = self.__classes.get_exam_by_index(curr_index)
             exam_index = curr_params.get("exam_index")
-            
+
             # 按照 id 搜索考试数据模型
             if exam_index is None and (exam_id := curr_params.get("exam_id")):
                 for exam_index, exam in enumerate(exams_lst):
                     if exam.exam_id == exam_id:
                         break
-            
+
             if exam_index is not None:
                 # 实例考试对象
                 return ExamDto(
@@ -240,7 +239,7 @@ class ClassSelector:
                     course_id=exams_lst[exam_index].course_id,
                     class_id=exams_lst[exam_index].class_id,
                     cpi=exams_lst[exam_index].cpi,
-                    enc_task=exams_lst[exam_index].enc_task
+                    enc_task=exams_lst[exam_index].enc_task,
                 )
             return exams_lst
         else:

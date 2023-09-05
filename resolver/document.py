@@ -11,13 +11,13 @@ from logger import Logger
 
 
 class DocumetResolver:
-    """文档阅读解决器
-    """
+    """文档阅读解决器"""
+
     logger: Logger
     document_dto: PointDocumentDto
-    
+
     tui_ctx: Layout
-    
+
     def __init__(
         self,
         document_dto: PointDocumentDto,
@@ -29,28 +29,33 @@ class DocumetResolver:
         self.logger = Logger("QuestionResolver")
         self.tui_ctx = Layout(name="Resolver")  # 当前类所属 TUI 的 ctx
         self.document_dto = document_dto
-        
+
     def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
         yield self.tui_ctx
-    
+
     def execute(self) -> None:
-        """执行自动接管逻辑
-        """
+        """执行自动接管逻辑"""
         self.logger.info(f"开始完成文档阅读 {self.document_dto}")
-        msg_console = Layout(name="Message", size=9)    # 信息显示窗口
-        
+        msg_console = Layout(name="Message", size=9)  # 信息显示窗口
+
         self.tui_ctx.split_column(
             Panel(
                 f"模拟浏览：{self.document_dto.title}",
-                title="正在模拟浏览"
+                title="正在模拟浏览",
             ),
-            msg_console
+            msg_console,
         )
-        
+
         try:
             report_result = self.document_dto.report()
         except APIError as e:
-            msg_console.update(Panel(e.__str__(), title="上报失败", border_style="red"))
+            msg_console.update(
+                Panel(
+                    e.__str__(),
+                    title="上报失败",
+                    border_style="red",
+                )
+            )
         else:
             msg_console.update(
                 Panel(
@@ -63,5 +68,6 @@ class DocumetResolver:
                 )
             )
         time.sleep(1.0)
+
 
 __all__ = ["DocumetResolver"]

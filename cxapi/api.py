@@ -10,11 +10,11 @@ from yarl import URL
 
 from logger import Logger, set_log_filename
 
-from . import calc_infenc, get_ts, get_ua
 from .classes import ClassContainer
 from .exception import APIError
 from .schema import AccountInfo, AccountSex
 from .session import SessionWraper
+from .utils import calc_infenc, get_ts, get_ua
 
 # 接口-web端登录
 API_LOGIN_WEB = "https://passport2.chaoxing.com/fanyalogin"
@@ -61,11 +61,11 @@ class ChaoXingAPI:
     @property
     def acc(self) -> AccountInfo:
         return self.session.acc
-    
+
     @acc.setter
     def acc(self, value: AccountInfo) -> None:
         self.session.acc = value
-    
+
     def login_passwd(self, phone: str, passwd: str) -> tuple[bool, dict]:
         """以 web 方式使用手机号+密码账号
         Args:
@@ -230,7 +230,7 @@ class ChaoXingAPI:
             path.mkdir(parents=True)
         file_path = path / f"{self.acc.puid}.jpg"
         open(file_path, "wb").write(resp.content)
-        self.logger.info(f"人脸保存成功 \"{file_path}\"")
+        self.logger.info(f'人脸保存成功 "{file_path}"')
 
 
 __all__ = ["ChaoXingAPI"]

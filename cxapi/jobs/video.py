@@ -8,10 +8,10 @@ from bs4 import BeautifulSoup
 
 from logger import Logger
 
-from .. import get_ts
+from ..exception import APIError
 from ..schema import AccountInfo
 from ..session import SessionWraper
-from ..exception import APIError
+from ..utils import get_ts
 
 # SSR页面-客户端章节任务卡片
 PAGE_MOBILE_CHAPTER_CARD = "https://mooc1-api.chaoxing.com/knowledge/cards"
@@ -24,8 +24,8 @@ API_VIDEO_PLAYREPORT = "https://mooc1-api.chaoxing.com/multimedia/log/a"
 
 
 class PointVideoDto:
-    """任务点视频接口
-    """
+    """任务点视频接口"""
+
     logger: Logger
     session: SessionWraper
     acc: AccountInfo
@@ -39,10 +39,10 @@ class PointVideoDto:
     object_id: str
     fid: int
     dtoken: str
-    duration: int   # 视频时长
+    duration: int  # 视频时长
     job_id: str
     otherInfo: str
-    title: str      # 视频标题
+    title: str  # 视频标题
     rt: float
 
     def __init__(
@@ -68,9 +68,12 @@ class PointVideoDto:
 
     def __str__(self) -> str:
         return f"PointVideo(title={self.title} duration={self.duration} objectid={self.object_id} dtoken={self.dtoken} jobid={self.job_id})"
-    
+
     def pre_fetch(self) -> bool:
-        "预拉取视频  返回是否需要完成"
+        """预拉取视频
+        Returns:
+            bool: 是否需要完成
+        """
         resp = self.session.get(
             PAGE_MOBILE_CHAPTER_CARD,
             params={
@@ -117,8 +120,7 @@ class PointVideoDto:
             raise RuntimeError("视频预拉取出错")
 
     def fetch(self) -> bool:
-        """拉取视频
-        """
+        """拉取视频"""
         resp = self.session.get(
             f"{API_CHAPTER_CARD_RESOURCE}/{self.object_id}",
             params={
@@ -139,7 +141,7 @@ class PointVideoDto:
         else:
             self.logger.info(f"拉取失败")
             return False
-    
+
     def play_report(self, playing_time: int) -> dict:
         """播放进度上报
         Args:
@@ -170,7 +172,7 @@ class PointVideoDto:
                             playing_time * 1000,
                             "d_yHJ!$pdA~5",
                             self.duration * 1000,
-                            f"0_{self.duration}"
+                            f"0_{self.duration}",
                         ).encode()
                     ).hexdigest(),
                     "rt": self.rt,
@@ -190,5 +192,6 @@ class PointVideoDto:
             raise APIError(error)
         self.logger.info(f"播放上报成功 {playing_time}/{self.duration}")
         return json_content
+
 
 __all__ = ["PointVideoDto"]
