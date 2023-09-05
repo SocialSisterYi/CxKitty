@@ -57,7 +57,7 @@ class ClassContainer:
                     state=ClassStatus(content["state"]),
                     course_id=course["data"][0]["id"],
                     name=course["data"][0]["name"],
-                    teacher_name=course["data"][0]["teacherfactor"],
+                    teacher_name=course["data"][0].get("teacherfactor", "未知"),
                 )
             )
 
