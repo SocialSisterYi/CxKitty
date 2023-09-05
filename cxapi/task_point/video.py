@@ -103,14 +103,14 @@ class PointVideoDto(TaskPointBase):
                     # 'akid': None,
                     "jobid": self.job_id,
                     "clipTime": f"0_{self.duration}",
-                    "clazzId": self.clazz_id,
+                    "clazzId": self.class_id,
                     "objectId": self.object_id,
-                    "userid": self.acc.puid,
+                    "userid": self.session.acc.puid,
                     "isdrag": "0",
                     "enc": md5(
                         "[{}][{}][{}][{}][{}][{}][{}][{}]".format(
-                            self.clazz_id,
-                            self.acc.puid,
+                            self.class_id,
+                            self.session.acc.puid,
                             self.job_id,
                             self.object_id,
                             playing_time * 1000,
