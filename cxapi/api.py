@@ -14,7 +14,7 @@ from .classes import ClassContainer
 from .exception import APIError
 from .schema import AccountInfo, AccountSex
 from .session import SessionWraper
-from .utils import calc_infenc, get_ts, get_ua
+from .utils import inf_enc_sign, get_ts, get_ua
 
 # 接口-web端登录
 API_LOGIN_WEB = "https://passport2.chaoxing.com/fanyalogin"
@@ -193,17 +193,15 @@ class ChaoXingAPI:
         Returns:
             str: 人脸图片url, 若未上传为 None
         """
-        params = {
-            "enc": md5(f"{self.acc.puid}uWwjeEKsri".encode()).hexdigest(),
-            "token": "4faa8662c59590c6f43ae9fe5b002b42",
-            "_time": get_ts(),
-        }
         resp = self.session.get(
             API_FACE_IMAGE,
-            params={
-                **params,
-                "inf_enc": calc_infenc(params),
-            },
+            params=inf_enc_sign(
+                {
+                    "enc": md5(f"{self.acc.puid}uWwjeEKsri".encode()).hexdigest(),
+                    "token": "4faa8662c59590c6f43ae9fe5b002b42",
+                    "_time": get_ts(),
+                }
+            ),
         )
         resp.raise_for_status()
         json_content = resp.json()

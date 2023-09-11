@@ -13,7 +13,7 @@ from .exception import APIError
 from .schema import AccountInfo, ChapterModel
 from .session import SessionWraper
 from .task_point import PointDocumentDto, PointVideoDto, PointWorkDto
-from .utils import calc_infenc, get_ts
+from .utils import inf_enc_sign, get_ts
 
 TaskPointType = PointWorkDto | PointVideoDto | PointDocumentDto
 
@@ -153,20 +153,18 @@ class ChapterContainer:
 
     def fetch_points_by_index(self, index: int) -> list[TaskPointType]:
         "以课程序号拉取对应“章节”的任务节点卡片资源"
-        params = {
-            "id": self.chapters[index].chapter_id,
-            "courseid": self.course_id,
-            "fields": "id,parentnodeid,indexorder,label,layer,name,begintime,createtime,lastmodifytime,status,jobUnfinishedCount,clickcount,openlock,card.fields(id,knowledgeid,title,knowledgeTitile,description,cardorder).contentcard(all)",
-            "view": "json",
-            "token": "4faa8662c59590c6f43ae9fe5b002b42",
-            "_time": get_ts(),
-        }
         resp = self.session.get(
             API_CHAPTER_CARDS,
-            params={
-                **params,
-                "inf_enc": calc_infenc(params),
-            },
+            params=inf_enc_sign(
+                {
+                    "id": self.chapters[index].chapter_id,
+                    "courseid": self.course_id,
+                    "fields": "id,parentnodeid,indexorder,label,layer,name,begintime,createtime,lastmodifytime,status,jobUnfinishedCount,clickcount,openlock,card.fields(id,knowledgeid,title,knowledgeTitile,description,cardorder).contentcard(all)",
+                    "view": "json",
+                    "token": "4faa8662c59590c6f43ae9fe5b002b42",
+                    "_time": get_ts(),
+                }
+            ),
         )
         resp.raise_for_status()
         json_content = resp.json()

@@ -13,15 +13,19 @@ DEVICE_VENDOR = f"MI{random.randint(10, 12)}"
 APP_VERSION = "com.chaoxing.mobile/ChaoXingStudy_3_5.1.4_android_phone_614_74"
 
 
-def calc_infenc(params: dict) -> str:
-    """计算 infenc 校验参数
+def inf_enc_sign(params: dict) -> dict:
+    """为请求表单添加 infenc 校验
     Args:
-        params: 请求表单参数
+        params: 原始请求表单参数
     Returns:
-        str: 校验参数
+        dict: 加入签名后的表单参数
     """
     query = urllib.parse.urlencode(params) + "&DESKey=Z(AfY@XS"
-    return md5(query.encode()).hexdigest()
+    inf_enc = md5(query.encode()).hexdigest()
+    return {
+        **params,
+        "inf_enc": inf_enc,
+    }
 
 
 def get_ts() -> str:
@@ -105,6 +109,7 @@ def get_exam_signature(uid: int, qid: int, x: int, y: int):
         "_edt": f"{ts}{salt}",
     }
 
+
 def remove_escape_chars(text: str) -> str:
     """移除空白字符
     Args:
@@ -112,8 +117,8 @@ def remove_escape_chars(text: str) -> str:
     Returns:
         str: 输出字符串
     """
-    return (text
-        .strip()
+    return (
+        text.strip()
         .replace("\xa0", "")
         .replace("\u2002", "")
         .replace("\u200b", "")
