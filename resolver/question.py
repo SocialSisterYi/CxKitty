@@ -217,7 +217,7 @@ class QuestionResolver:
                         part_answer_lst = search_answer.split(";")
                     for part_answer in part_answer_lst:
                         for k, v in question.options.items():
-                            if difflib.SequenceMatcher(a=v, b=part_answer).ratio() >= 0.9:
+                            if v == part_answer:
                                 option_lst.append(k)
                                 self.logger.debug(f"多选题命中 {k}={v}")
                     # 多选题选项必须排序，否则提交错误

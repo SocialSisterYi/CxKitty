@@ -26,7 +26,7 @@ from cxapi import (
 from cxapi.exception import ChapterNotOpened, TaskPointError
 from logger import Logger
 from resolver import DocumetResolver, MediaPlayResolver, QuestionResolver
-from utils import ck2dict, sessions_load
+from utils import __version__, ck2dict, sessions_load
 
 api = ChaoXingAPI()
 console = Console(height=config.TUI_MAX_HEIGHT)
@@ -342,6 +342,7 @@ if __name__ == "__main__":
         console.print("[yellow]会话存档为空, 请登录账号")
         dialog.login(console, api)
     logger.info("\n-----*任务开始执行*-----")
+    logger.info(f"Ver. {__version__}")
     dialog.accinfo(console, api)
     try:
         # 拉取预先上传的人脸图片

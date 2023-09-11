@@ -83,7 +83,7 @@ def get_special_type(resp: Response) -> SpecialPageType:
     resp_url = URL(resp.url)
     if resp_url.path.endswith("/antispiderShowVerify.ac"):
         return SpecialPageType.CAPTCHA
-    elif resp.headers["Content-Type"].startswith("text/html"):
+    elif resp.headers.get("Content-Type", "").startswith("text/html"):
         html = BeautifulSoup(resp.text, "lxml")
         if e := html.select_one("body.grayBg script"):
             if re.search(
