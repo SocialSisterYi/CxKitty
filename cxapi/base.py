@@ -128,10 +128,10 @@ class TaskPointBase:
         html = BeautifulSoup(resp.text, "lxml")
 
         if r := re.search(
-            r"window\.AttachmentSetting *= *(.+?);",
+            r"window\.AttachmentSetting *= *(?P<json>.+);",
             html.head.find("script", type="text/javascript").text,
         ):
-            self.attachment = json.loads(r.group(1))
+            self.attachment = json.loads(r.group("json"))
             self.logger.debug(f"Attachment: {self.attachment}")
         else:
             if t := html.select_one("p.blankTips"):
