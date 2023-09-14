@@ -198,7 +198,7 @@ class QuestionResolver:
             match question.type:
                 case QuestionType.单选题:
                     for k, v in question.options.items():
-                        if difflib.SequenceMatcher(a=v, b=search_answer).ratio() >= 0.9:
+                        if difflib.SequenceMatcher(a=v, b=search_answer).ratio() >= 0.95:
                             question.answer = k
                             self.logger.debug(f"单选题命中 {k}={v}")
                             return True

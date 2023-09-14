@@ -24,14 +24,16 @@
   - ✅批量选择课程（使用序号 / courseId / 课程名）
 - 协议实现
   - ✅使用 [requests](https://github.com/psf/requests) 及 [bs4](https://www.crummy.com/software/BeautifulSoup/) 分别进行协议模拟和 HTML 解析，故无需浏览器，更无需油猴脚本
-  - ✅无惧接口风控，基于 [OpenCV](https://github.com/opencv/opencv) 与 [ddddocr](https://github.com/sml2h3/ddddocr) 对验证码进行识别，进而解除风控状态
-  - ✅接口请求自动 retry 支持，针对网络环境不佳以及使用移动流量的场景优化
+  - ✅无惧接口风控，基于 [OpenCV](https://github.com/opencv/opencv) 与 [ddddocr](https://github.com/sml2h3/ddddocr) 对验证码进行识别，进而解除接口风控状态
+  - ✅接口请求 retry 支持，针对网络环境不佳以及使用移动流量的场景优化
+  - ✅人脸识别弹窗自动上传提交，可使用预先上传的人脸图片，也可自定义图片上传提交
 - 任务点
   - ✅视频课程任务点模拟播放（无需消耗流量播放流媒体内容）
   - ✅文档任务点模拟浏览（如 word ppt pdf 等）
 - 考试及测验
   - ✅章节测验任务点自动答题，支持单选题、多选题、填空题、判断题，试题未完成可临时保存
-  - ✅课程考试自动答题，支持单选题、多选题、填空题、判断题（考试模式、使用手机客户端协议）
+  - ✅课程考试（考试模式）自动答题，支持单选题、多选题、填空题、判断题（使用手机客户端接口）
+  - ✅自动过滤题干和选项中的空白 Unicode 字符，eg：u+2002、u+200b、u+3000
   - ✅遇到匹配失败的题，可使用 fuzzer 方式填充答案并提交（默认关闭）
   - ✅章节测验试题 / 课程考试可完整导出，信息全、无加密无乱码，可导出临时保存的答案，现支持 json 格式
   - ✅自动答题功能需要至少一种的 **题库后端** 支持，现支持`REST API`、`JSON`、`SQLite`三种类型的 **题库后端**，同时已接入`Enncy`、`网课小工具（Go题）`两种第三方题库，可并行搜索，择优匹配答案（建议使用自建题库）
@@ -123,6 +125,8 @@ docker build --tag socialsisteryi/cx-kitty .
 
 `/app/export`试题导出目录 (根据配置文件修改，**如不需要可不映射**)
 
+`/app/faces`人脸上传目录 (根据配置文件修改，**如不需要可不映射**)
+
 `/app/config.yml`程序配置文件
 
 `/app/questions.json`json题库 (根据配置文件修改，**如不需要可不映射**)
@@ -137,13 +141,14 @@ docker run -it \
   -v "$PWD/session:/app/session"  \
   -v "$PWD/export:/app/export" \
   -v "$PWD/logs:/app/logs" \
+  -v "$PWD/faces:/app/faces" \
   -v "$PWD/config.yml:/app/config.yml" \
   #-v "$PWD/questions.json:/app/questions.json" \
   #-v "$PWD/questions.db:/app/questions.db" \
   --log-opt max-size=10m \
   socialsisteryi/cx-kitty
 ```
-### ▶️使用 可执行文件 (Windows/Linux/MacOS) (测试版)
+### ▶️可执行文件构建 (Windows/Linux/MacOS) (不建议使用)
 
 从[Action](https://github.com/SocialSisterYi/CxKitty/actions/workflows/package-exe.yml)中获取最新的自动构建文件,解压后执行文件
 
@@ -170,6 +175,16 @@ docker run -it \
 配置文件使用 Yaml 语法编写，存放于 [config.yml](config.yml)
 
 请根据注释修改配置内容
+
+### 人脸识别配置
+
+人脸识别图片要求必须 .jpg 格式，存放于`face_image_path`配置的路径下，默认为`faces/`
+
+若`fetch_uploaded_face`字段为`true`，在登录成功后立即尝试拉取该用户预先上传的人脸图片，成功后以用户 puid 命名（eg：`114514.jpg`），存放于`face_image_path`配置的路径下，以备需要识别时读取
+
+人脸识别图片还可以自定义，要求图片文件名以 puid 命名，存放于`face_image_path`配置的路径下，但需要注意将`fetch_uploaded_face`设置为`false`，否则登录成功后会被覆盖
+
+也可以为每个自定义一组多张人脸图片，图片以 puid+序号 命名（eg：`114514_1.jpg`、`114514_2.jpg`），程序中使用正则`/\d+(_d+)?\.jpg/`遍历筛选，需要识别人脸时会从这组图片中随机抽取一张并上传
 
 ### 题库配置
 
@@ -227,9 +242,9 @@ Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第�
 
 ## 📖Usage & Demo
 
-**注：本项目并非小白向“开箱即用”类型，需要一定的专业技术能力；如需使用自动答题功能，请确保您拥有准确无误的题库资源**
+**注：本项目并非小白向“开箱即用”类型，需要一定的计算机专业技术能力；如需使用自动答题功能，请确保您拥有准确无误的题库资源**
 
-当配置文件和题库资源无误后，运行主程序，进行选择会话存档，若少于一个会话存档，则直接进入登录界面
+修改正确的配置文件，并提供配置中定义的资源，运行主程序，进行选择会话存档，若少于一个会话存档，则直接进入登录界面
 
 登录界面输入手机号后按回车键输入密码，再按回车键进行登录
 

@@ -81,6 +81,8 @@ def get_special_type(resp: Response) -> SpecialPageType:
         SpecialPageType: 特殊页面类型
     """
     resp_url = URL(resp.url)
+    if 'Location' in resp.headers:
+        return SpecialPageType.NORMAL
     if resp_url.path.endswith("/antispiderShowVerify.ac"):
         return SpecialPageType.CAPTCHA
     elif resp.headers.get("Content-Type", "").startswith("text/html"):
