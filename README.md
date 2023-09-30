@@ -291,6 +291,10 @@ Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第�
 - 本项目仅适用于**学习研究**，任何人不得以此用于**盈利**
 - 使用本项目造成的任何后果与本人无关
 
+## 📈Stargazers
+
+[![Stargazers over time](https://starchart.cc/SocialSisterYi/CxKitty.svg)](https://starchart.cc/SocialSisterYi/CxKitty)
+
 ## 🔗Link Repos
 
 [Samueli924/chaoxing: 超星学习通/超星尔雅/泛雅超星全自动无人值守完成任务点 (github.com)](https://github.com/Samueli924/chaoxing)
