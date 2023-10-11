@@ -25,8 +25,9 @@ from cxapi.schema import QuestionModel, QuestionsExportSchema, QuestionsExportTy
 from logger import Logger
 
 from .searcher import MultiSearcherWraper, SearcherResp
+
 from .searcher.json import JsonFileSearcher
-from .searcher.restapi import CxSearcher, EnncySearcher, RestApiSearcher
+from .searcher.restapi import CxSearcher, EnncySearcher, RestApiSearcher, TiKuHaiSearcher
 from .searcher.sqlite import SqliteSearcher
 
 # 所有的搜索器类
@@ -36,6 +37,7 @@ SEARCHERS = {
     "EnncySearcher": EnncySearcher,
     "RestApiSearcher": RestApiSearcher,
     "SqliteSearcher": SqliteSearcher,
+    "TiKuHaiSearcher": TiKuHaiSearcher,
 }
 
 
@@ -61,9 +63,9 @@ def load_searcher() -> MultiSearcherWraper:
 
 class MyTable(Table):
     def push_row(
-        self,
-        *renderables: Optional["RenderableType"],
-        style: Optional[StyleType] = None,
+            self,
+            *renderables: Optional["RenderableType"],
+            style: Optional[StyleType] = None,
     ) -> None:
         """向表格顶部插入行"""
 
@@ -152,13 +154,13 @@ class QuestionResolver:
     finish_flag: bool  # 答题完毕标志
 
     def __init__(
-        self,
-        exam_dto: QAQDtoBase,
-        fallback_save: bool = True,
-        fallback_fuzzer: bool = False,
-        persubmit_delay: float = 1.0,
-        auto_final_submit: bool = True,
-        cb_confirm_submit: Callable[[int, int, list, QAQDtoBase], bool] = None,
+            self,
+            exam_dto: QAQDtoBase,
+            fallback_save: bool = True,
+            fallback_fuzzer: bool = False,
+            persubmit_delay: float = 1.0,
+            auto_final_submit: bool = True,
+            cb_confirm_submit: Callable[[int, int, list, QAQDtoBase], bool] = None,
     ) -> None:
         """constructor
         Args:
@@ -392,10 +394,10 @@ class QuestionResolver:
             # 交卷确认不通过, 即退出工作流
             if self.cb_confirm_submit is not None:
                 if not self.cb_confirm_submit(
-                    self.completed_cnt,
-                    self.incompleted_cnt,
-                    self.mistakes,
-                    self.exam_dto,
+                        self.completed_cnt,
+                        self.incompleted_cnt,
+                        self.mistakes,
+                        self.exam_dto,
                 ):
                     return
 
