@@ -68,7 +68,7 @@ class RestApiSearcher(SearcherBase):
 
 
 class JsonApiSearcher(SearcherBase):
-    "REST API 在线搜索器"
+    "JSON API 在线搜索器"
     session: requests.Session
     q_field: str
     o_field: list[str] | None
@@ -119,8 +119,8 @@ class JsonApiSearcher(SearcherBase):
 
     def parse(self, json_content: dict | list) -> SearcherResp:
         if result := self.rsp_query.parse(json_content):
-            return SearcherResp(0, "ok", self, self.question_value, result[0])
-        return SearcherResp(-500, "未匹配答案字段", self, self.question_value, None)
+            return SearcherResp(0, "ok", self, self.question, result[0])
+        return SearcherResp(-500, "未匹配答案字段", self, self.question, None)
 
 
 class EnncySearcher(RestApiSearcher):
