@@ -240,6 +240,10 @@ Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第�
 
 获取 Token 方式见 [文档](https://cx.icodef.com/1-UserGuide/1-6-gettoken.html#%E8%8E%B7%E5%8F%96token)
 
+题库海 题库，使用前请注册并获取 Token 填写在配置文件中（第三方题库）
+
+通过此 [链接](https://afdian.net/a/jiaoyu666) 获取 Token
+
 ## 📖Usage & Demo
 
 **注：本项目并非小白向“开箱即用”类型，需要一定的计算机专业技术能力；如需使用自动答题功能，请确保您拥有准确无误的题库资源**

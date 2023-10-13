@@ -2,10 +2,10 @@ from typing import Literal
 
 import jsonpath
 import requests
+from bs4 import BeautifulSoup
 from rich import json
 
 from cxapi.schema import QuestionModel
-
 from . import SearcherBase, SearcherResp
 
 
@@ -67,6 +67,62 @@ class RestApiSearcher(SearcherBase):
             return SearcherResp(-500, err.__str__(), self, self.question_value, None)
 
 
+class JsonApiSearcher(SearcherBase):
+    "REST API 在线搜索器"
+    session: requests.Session
+    q_field: str
+    o_field: list[str] | None
+    a_query: jsonpath.JSONPath
+    url: str
+
+    def __init__(
+            self,
+            url,
+            q_field: str = "question",  # 题目文本字段
+            o_field: str | None = None,  # 选项字段
+            a_field: str = "$.data",  # 答案字段 使用 jsonpath 语法
+            headers: dict | None = None,  # 自定义头部
+            ext_params: dict | None = None,  # 扩展请求字段
+
+    ) -> None:
+        self.params: dict | None = None
+        self.question: str | None = None
+        self.session = requests.Session()
+        self.url = url
+        if headers:
+            self.session.headers.update(headers)
+        self.q_field = q_field
+        self.o_field = o_field
+        self.rsp_query = jsonpath.compile(a_field)
+        self.ext_params = ext_params or {}
+
+    def invoke(self, question: QuestionModel) -> SearcherResp:
+        self.question = question.value
+        self.params = {self.q_field: self.question,
+                       "type": question.type.value,
+                       "id": question.id,
+                       **self.ext_params}
+        if question.options is not None:
+            if self.o_field and question.options and isinstance(question.options, dict):
+                self.params[self.o_field] = '#'.join(question.options.values())
+            else:
+                self.params["options"] = question.options
+        try:
+            resp = self.session.post(
+                self.url,
+                data=json.dumps(self.params),
+            )
+            resp.raise_for_status()
+            return self.parse(resp.json())
+        except Exception as err:
+            return SearcherResp(-500, err.__str__(), self, self.question, None)
+
+    def parse(self, json_content: dict | list) -> SearcherResp:
+        if result := self.rsp_query.parse(json_content):
+            return SearcherResp(0, "ok", self, self.question_value, result[0])
+        return SearcherResp(-500, "未匹配答案字段", self, self.question_value, None)
+
+
 class EnncySearcher(RestApiSearcher):
     "Enncy 题库搜索器"
 
@@ -117,47 +173,83 @@ class CxSearcher(RestApiSearcher):
         return SearcherResp(-500, "未匹配答案字段", self, self.question_value, None)
 
 
-class TiKuHaiSearcher(SearcherBase):
+class TiKuHaiSearcher(JsonApiSearcher):
     "题库海在线搜索器"
     token: str
 
-    def __init__(
-            self,
-            token: str
-    ) -> None:
-        self.question = None
-        self.token = token
-        self.session = requests.Session()
-        self.url = "http://api.tikuhai.com/search"
-        self.session.headers.update(
-            {
+    def __init__(self, token: str) -> None:
+        super().__init__(
+            url="http://api.tikuhai.com/search",
+            headers={
                 "Host": "api.tikuhai.com",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
                 "referer": "https://mooc1.chaoxing.com",
-                'Content-Type': 'application/json'
-            })
-        self.rsp_query = jsonpath.compile("$.data.answer")
+                "Content-Type": "application/json"
+            },
+            a_field="$.data.answer",
+            ext_params={
+                "key": token,
+            },
+        )
 
     def parse(self, json_content: dict | list) -> SearcherResp:
         if jsonpath.compile("$.code").parse(json_content)[0] != 200:
+            if jsonpath.compile("$.msg").parse(json_content):
+                soup = BeautifulSoup(jsonpath.compile("$.msg").parse(json_content)[0], 'lxml')
+                msg = soup.find_all('a')
+                if msg:
+                    return SearcherResp(-1, "搜索失败,付费库:" + str(msg[0].text) + "请前往购买" + str(
+                        msg[1].attrs['href']), self, self.question, None)
             return SearcherResp(-404, "搜索失败", self, self.question, None)
         if result := self.rsp_query.parse(json_content):
             return SearcherResp(0, "ok", self, self.question, result[0][0])
         return SearcherResp(-500, "未匹配答案字段", self, self.question, None)
 
-    def invoke(self, question: QuestionModel) -> SearcherResp:
-        self.question = question.value
-        params = json.dumps({"question": question.value, "type": question.type.value,
-                             "id": question.id,
-                             "key": self.token})
-        try:
-            resp = self.session.post(
-                self.url,
-                data=params,
-            )
-            resp.raise_for_status()
-            return self.parse(resp.json())
-        except Exception as err:
-            return SearcherResp(-500, err.__str__(), self, self.question, None)
+
+class MukeSearcher(JsonApiSearcher):
+    "Muke在线搜索器"
+
+    def __init__(self) -> None:
+        super().__init__(
+            url="https://api.muketool.com/cx/v2/query",
+            headers={
+                "Host": "api.muketool.com",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
+                "Content-Type": "application/json"
+            },
+            a_field="$.data",
+        )
+
+    def parse(self, json_content: dict | list) -> SearcherResp:
+        if jsonpath.compile("$.code").parse(json_content)[0] != 1:
+            return SearcherResp(-404, "搜索失败", self, self.question, None)
+        if result := self.rsp_query.parse(json_content):
+            return SearcherResp(0, "ok", self, self.question, result[0][0])
+        return SearcherResp(-500, "未匹配答案字段", self, self.question, None)
 
 
-__all__ = ["RestApiSearcher", "EnncySearcher", "CxSearcher", "TiKuHaiSearcher"]
+class LyCk6Searcher(JsonApiSearcher):
+    "冷月题库搜索器"
+
+    def __init__(self, token: str) -> None:
+        super().__init__(
+            url="https://lyck6.cn/scriptService/api/autoFreeAnswer",
+            headers={
+                "Content-Type": "application/json",
+            },
+            a_field="$.result.answers[0][0]",
+        )
+
+    def parse(self, json_content: dict) -> SearcherResp:
+        if jsonpath.compile("$.code").parse(json_content)[0] != 0:
+            return SearcherResp(-404, "搜索失败", self, self.question, None)
+        if jsonpath.compile("$.code").parse(json_content)[0] == 429:
+            return SearcherResp(-429, "访问频繁已限速", self, self.question, None)
+        if jsonpath.compile("$.code").parse(json_content)[0] == 444:
+            return SearcherResp(-444, "服务繁忙，请稍后重试", self, self.question, None)
+        if result := self.rsp_query.parse(json_content):
+            return SearcherResp(0, "ok", self, self.question, result[0])
+        return SearcherResp(-500, "未匹配答案字段", self, self.question, None)
+
+
+__all__ = ["RestApiSearcher", "EnncySearcher", "CxSearcher", "TiKuHaiSearcher", "MukeSearcher", "LyCk6Searcher"]

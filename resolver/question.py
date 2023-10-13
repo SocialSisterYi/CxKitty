@@ -27,7 +27,8 @@ from logger import Logger
 from .searcher import MultiSearcherWraper, SearcherResp
 
 from .searcher.json import JsonFileSearcher
-from .searcher.restapi import CxSearcher, EnncySearcher, RestApiSearcher, TiKuHaiSearcher
+from .searcher.restapi import CxSearcher, EnncySearcher, RestApiSearcher, TiKuHaiSearcher, LyCk6Searcher, MukeSearcher, \
+    JsonApiSearcher
 from .searcher.sqlite import SqliteSearcher
 
 # 所有的搜索器类
@@ -38,6 +39,9 @@ SEARCHERS = {
     "RestApiSearcher": RestApiSearcher,
     "SqliteSearcher": SqliteSearcher,
     "TiKuHaiSearcher": TiKuHaiSearcher,
+    "LyCk6Searcher": LyCk6Searcher,
+    "MukeSearcher": MukeSearcher,
+    "JsonApiSearcher": JsonApiSearcher,
 }
 
 
