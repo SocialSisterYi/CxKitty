@@ -23,6 +23,9 @@ API_CHAPTER_POINT = "https://mooc1-api.chaoxing.com/job/myjobsnodesmap"
 # 接口-课程章节卡片
 API_CHAPTER_CARDS = "https://mooc1-api.chaoxing.com/gas/knowledge"
 
+# SSR页面-用于刷新锁定的任务点
+PAGE_REFRESH_CHAPTER = "https://mooc1.chaoxing.com/mooc-ans/mycourse/studentstudyAjax"
+
 
 class ChapterContainer:
     """课程章节容器
@@ -69,17 +72,23 @@ class ChapterContainer:
         return f"<ClassChapters id={self.course_id} name={self.name} count={len(self)}>"
 
     def is_finished(self, index: int) -> bool:
-        "判断当前章节的任务点是否全部完成"
+        """判断当前章节的任务点是否全部完成
+        Args:
+            index: 任务点索引
+        """
         return (self.chapters[index].point_total > 0) and (
             self.chapters[index].point_total == self.chapters[index].point_finished
         )
 
     def set_tui_index(self, index: int):
-        "设置 TUI 指针位置"
+        """设置 TUI 指针位置
+        Args:
+            index: 任务点索引
+        """
         self.tui_index = index
 
     def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
-        "渲染章节列表到 TUI"
+        """渲染章节列表到 TUI"""
         total = len(self.chapters)
         half_length = options.height // 2
         if self.tui_index - half_length < 0:
@@ -124,7 +133,7 @@ class ChapterContainer:
             )
 
     def fetch_point_status(self) -> None:
-        "拉取章节任务点状态"
+        """拉取章节任务点状态"""
         resp = self.session.post(
             API_CHAPTER_POINT,
             data={
@@ -152,7 +161,11 @@ class ChapterContainer:
         return len(self.chapters)
 
     def fetch_points_by_index(self, index: int) -> list[TaskPointType]:
-        "以课程序号拉取对应“章节”的任务节点卡片资源"
+        """以课程序号拉取对应“章节”的任务节点卡片资源
+        Args:
+            index: 任务点索引
+        """
+        self.refresh_chapter(index)
         resp = self.session.get(
             API_CHAPTER_CARDS,
             params=inf_enc_sign(
@@ -258,6 +271,24 @@ class ChapterContainer:
             f"[{self.chapters[index].label}:{self.chapters[index].name}(Id.{self.chapters[index].chapter_id})]"
         )
         return point_objs
+
+    def refresh_chapter(self, index: int) -> None:
+        """刷新任务点锁定状态
+        Args:
+            index: 任务点索引
+        """
+        resp = self.session.get(
+            PAGE_REFRESH_CHAPTER,
+            params={
+                "courseId": self.course_id,
+                "clazzid": self.class_id,
+                "chapterId": self.chapters[index].chapter_id,
+                "cpi": self.cpi,
+                "verificationcode": "",
+                "mooc2": 1,
+            },
+        )
+        resp.raise_for_status()
 
 
 __all__ = ["ChapterContainer"]

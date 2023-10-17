@@ -155,12 +155,8 @@ class PointWorkDto(TaskPointBase, QAQDtoBase):
                 return False
             self.ktoken = self.attachment["defaults"]["ktoken"]
             self.enc = point["enc"]
-            if (job := point.get("job")) is not None:
-                needtodo = job in (True, None)  # 这里有部分试题不存在`job`字段
-                # self.need_jobid = True  # 不知道为什么这里的`job`字段和请求试题的接口的`jobid`参数有关
-            else:
-                # self.need_jobid = False
-                needtodo = True
+            job = point.get("job")
+            needtodo = job is True
             self.logger.info("解析Attachment成功")
         except Exception:
             self.logger.error("解析Attachment失败")
