@@ -150,7 +150,10 @@ class ChapterContainer:
         json_content = resp.json()
         for c in self.chapters:
             point_data = json_content[str(c.chapter_id)]
-            c.point_total = point_data["totalcount"]
+            if point_data["unfinishcount"] != 0 and point_data["totalcount"] == 0:
+                c.point_total = point_data["unfinishcount"]
+            else:
+                c.point_total = point_data["totalcount"]
             c.point_finished = point_data["finishcount"]
         self.logger.info("任务点状态已更新")
 
