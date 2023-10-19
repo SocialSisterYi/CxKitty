@@ -3,14 +3,14 @@ from typing import Literal
 import jsonpath
 import requests
 from bs4 import BeautifulSoup
-from rich import json
 
 from cxapi.schema import QuestionModel
 from . import SearcherBase, SearcherResp
 
 
 class RestApiSearcher(SearcherBase):
-    "REST API 在线搜索器"
+    """UrlQuery REST API 在线搜索器"""
+
     session: requests.Session
     q_field: str
     o_field: list[str] | None
@@ -68,7 +68,8 @@ class RestApiSearcher(SearcherBase):
 
 
 class JsonApiSearcher(SearcherBase):
-    "JSON API 在线搜索器"
+    """JSON REST API 在线搜索器"""
+
     session: requests.Session
     q_field: str
     o_field: list[str] | None
@@ -84,7 +85,6 @@ class JsonApiSearcher(SearcherBase):
         headers: dict | None = None,  # 自定义头部
         ext_params: dict | None = None,  # 扩展请求字段
     ) -> None:
-        self.params: dict | None = None
         self.question: str | None = None
         self.session = requests.Session()
         self.url = url
@@ -97,7 +97,7 @@ class JsonApiSearcher(SearcherBase):
 
     def invoke(self, question: QuestionModel) -> SearcherResp:
         self.question = question.value
-        self.params = {
+        payload = {
             self.q_field: self.question,
             "type": question.type.value,
             "id": question.id,
@@ -105,13 +105,13 @@ class JsonApiSearcher(SearcherBase):
         }
         if question.options is not None:
             if self.o_field and question.options and isinstance(question.options, dict):
-                self.params[self.o_field] = "#".join(question.options.values())
+                payload[self.o_field] = "#".join(question.options.values())
             else:
-                self.params["options"] = question.options
+                payload["options"] = question.options
         try:
             resp = self.session.post(
                 self.url,
-                data=json.dumps(self.params),
+                json=payload,
             )
             resp.raise_for_status()
             return self.parse(resp.json())
@@ -125,13 +125,16 @@ class JsonApiSearcher(SearcherBase):
 
 
 class EnncySearcher(RestApiSearcher):
-    "Enncy 题库搜索器"
+    """Enncy 题库搜索器"""
 
     def __init__(self, token: str) -> None:
         super().__init__(
             url="https://tk.enncy.cn/query",
             method="GET",
-            ext_params={"v": 1, "token": token},
+            ext_params={
+                "v": 1,
+                "token": token,
+            },
             q_field="title",
             a_field="$.data.answer",
         )
@@ -151,17 +154,20 @@ class EnncySearcher(RestApiSearcher):
 
 
 class CxSearcher(RestApiSearcher):
-    "网课小工具(Go题)题库搜索器"
+    """网课小工具(Go题)题库搜索器"""
 
     def __init__(self, token: str) -> None:
         super().__init__(
-            url="https://cx.icodef.com/wyn-nb?v=4",
+            url="https://cx.icodef.com/wyn-nb",
             method="POST",
             q_field="question",
             headers={
                 "Content-Type": "application/x-www-form-urlencoded",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36 Edg/113.0.1774.35",
                 "Authorization": token,
+            },
+            ext_params={
+                "v": 4,
             },
             a_field="$.data",
         )
@@ -175,17 +181,16 @@ class CxSearcher(RestApiSearcher):
 
 
 class TiKuHaiSearcher(JsonApiSearcher):
-    "题库海在线搜索器"
+    """题库海在线搜索器"""
+
     token: str
 
     def __init__(self, token: str) -> None:
         super().__init__(
             url="http://api.tikuhai.com/search",
             headers={
-                "Host": "api.tikuhai.com",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
                 "referer": "https://mooc1.chaoxing.com",
-                "Content-Type": "application/json",
             },
             a_field="$.data.answer",
             ext_params={
@@ -213,15 +218,13 @@ class TiKuHaiSearcher(JsonApiSearcher):
 
 
 class MukeSearcher(JsonApiSearcher):
-    "Muke在线搜索器"
+    """Muke在线搜索器"""
 
     def __init__(self) -> None:
         super().__init__(
             url="https://api.muketool.com/cx/v2/query",
             headers={
-                "Host": "api.muketool.com",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
-                "Content-Type": "application/json",
             },
             a_field="$.data",
         )
@@ -235,14 +238,11 @@ class MukeSearcher(JsonApiSearcher):
 
 
 class LyCk6Searcher(JsonApiSearcher):
-    "冷月题库搜索器"
+    """冷月题库搜索器"""
 
-    def __init__(self, token: str) -> None:
+    def __init__(self) -> None:
         super().__init__(
             url="https://lyck6.cn/scriptService/api/autoFreeAnswer",
-            headers={
-                "Content-Type": "application/json",
-            },
             a_field="$.result.answers[0][0]",
         )
 

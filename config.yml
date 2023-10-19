@@ -117,4 +117,3 @@ searchers:
 
   # Muke题库
   # - type: MukeSearcher
-  #   token: ***
