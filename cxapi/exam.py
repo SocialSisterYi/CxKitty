@@ -348,6 +348,7 @@ class ExamDto(QAQDtoBase):
                 "enc_task": self.enc_task,
                 "cpi": self.cpi,
                 "vx": 0,
+                "examsignal": 1,  # 强制跳过考试承诺书
             },
             allow_redirects=False,
         )
