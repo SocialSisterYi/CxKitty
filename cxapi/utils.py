@@ -118,8 +118,7 @@ def remove_escape_chars(text: str) -> str:
         str: 输出字符串
     """
     return (
-        text
-        .replace("\xa0", " ")
+        text.replace("\xa0", " ")
         .strip()
         .replace("\u2002", "")
         .replace("\u200b", "")

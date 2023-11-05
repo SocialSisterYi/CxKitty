@@ -93,13 +93,13 @@ def on_captcha_before(status: bool, code: str):
         time.sleep(1.0)
 
 
-def on_face_detection_after():
+def on_face_detection_after(orig_url):
     """人脸识别开始 回调"""
     if layout.get("captcha") is None:
         lay_right.split_column(lay_right_content, lay_session_notice)
     lay_session_notice.update(
         Panel(
-            f"[yellow]正在准备人脸识别...",
+            f"[yellow]正在准备人脸识别...\nURL:{orig_url}",
             title="[red]人脸识别",
             border_style="yellow",
         )
@@ -157,24 +157,31 @@ def fuck_task_worker(chap: ChapterContainer):
                 )
                 time.sleep(0.1)  # 解决强迫症, 故意添加延时, 为展示滚屏效果
                 continue
+            refresh_flag = True
             # 获取当前章节的所有任务点, 并遍历
             for task_point in chap[index]:
                 # 拉取任务卡片 Attachment
                 try:
                     task_point.fetch_attachment()
                 except ChapterNotOpened:
-                    lay_left.unsplit()
-                    lay_left.update(
-                        Panel(
-                            Align.center(
-                                f"[red]章节【{chap.chapters[index].label}】《{chap.chapters[index].name}》未开放\n程序无法继续执行！",
-                                vertical="middle",
-                            ),
-                            border_style="red",
+                    if refresh_flag:
+                        chap.refresh_chapter(index)
+                        refresh_flag = False
+                        continue
+                    else:
+                        lay_left.unsplit()
+                        lay_left.update(
+                            Panel(
+                                Align.center(
+                                    f"[red]章节【{chap.chapters[index].label}】《{chap.chapters[index].name}》未开放\n程序无法继续执行！",
+                                    vertical="middle",
+                                ),
+                                border_style="red",
+                            )
                         )
-                    )
-                    logger.error("\n-----*未开放章节, 程序异常退出*-----")
-                    sys.exit()
+                        logger.error("\n-----*未开放章节, 程序异常退出*-----")
+                        sys.exit()
+                refresh_flag = True
                 try:
                     # 开始分类讨论任务点类型
                     # 章节测验类型
@@ -353,9 +360,11 @@ if __name__ == "__main__":
         classes = api.fetch_classes()
         # 课程选择交互
         command = dialog.select_class(console, classes)
-        # 注册验证码回调
+        # 注册验证码 人脸 回调
         api.session.reg_captcha_after(on_captcha_after)
         api.session.reg_captcha_before(on_captcha_before)
+        api.session.reg_face_after(on_face_detection_after)
+        api.session.reg_face_before(on_face_detection_before)
         # 执行课程任务
         for task_obj in ClassSelector(command, classes):
             # 章节容器 执行章节任务

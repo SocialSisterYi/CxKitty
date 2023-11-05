@@ -1,10 +1,11 @@
-from typing import Literal
+from typing import Literal, Optional
 
 import jsonpath
 import requests
 from bs4 import BeautifulSoup
 
 from cxapi.schema import QuestionModel
+
 from . import SearcherBase, SearcherResp
 
 
@@ -13,7 +14,7 @@ class RestApiSearcher(SearcherBase):
 
     session: requests.Session
     q_field: str
-    o_field: list[str] | None
+    o_field: Optional[list[str]]
     a_query: jsonpath.JSONPath
     url: str
     method: Literal["GET", "POST"]
@@ -22,10 +23,10 @@ class RestApiSearcher(SearcherBase):
         self,
         url,
         q_field: str = "question",  # 题目文本字段
-        o_field: str | None = None,  # 选项字段
+        o_field: Optional[str] = None,  # 选项字段
         a_field: str = "$.data",  # 答案字段 使用 jsonpath 语法
-        headers: dict | None = None,  # 自定义头部
-        ext_params: dict | None = None,  # 扩展请求字段
+        headers: Optional[dict] = None,  # 自定义头部
+        ext_params: Optional[dict] = None,  # 扩展请求字段
         method: Literal["GET", "POST"] = "POST",  # 请求方式
     ) -> None:
         self.session = requests.Session()
@@ -72,7 +73,7 @@ class JsonApiSearcher(SearcherBase):
 
     session: requests.Session
     q_field: str
-    o_field: list[str] | None
+    o_field: Optional[list[str]]
     a_query: jsonpath.JSONPath
     url: str
 
@@ -80,12 +81,11 @@ class JsonApiSearcher(SearcherBase):
         self,
         url,
         q_field: str = "question",  # 题目文本字段
-        o_field: str | None = None,  # 选项字段
+        o_field: Optional[str] = None,  # 选项字段
         a_field: str = "$.data",  # 答案字段 使用 jsonpath 语法
-        headers: dict | None = None,  # 自定义头部
-        ext_params: dict | None = None,  # 扩展请求字段
+        headers: Optional[dict] = None,  # 自定义头部
+        ext_params: Optional[dict] = None,  # 扩展请求字段
     ) -> None:
-        self.question: str | None = None
         self.session = requests.Session()
         self.url = url
         if headers:

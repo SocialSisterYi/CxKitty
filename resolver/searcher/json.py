@@ -11,6 +11,7 @@ def filter_suffix(text: str) -> str:
     "过滤题目的各种符号后缀"
     return text.strip("()（）.。?？")
 
+
 class JsonFileSearcher(SearcherBase):
     "JSON 数据库搜索器"
     db: dict[str, str]
@@ -31,5 +32,6 @@ class JsonFileSearcher(SearcherBase):
             ):
                 return SearcherResp(0, "ok", self, q, a)
         return SearcherResp(-404, "题目未匹配", self, question.value, None)
+
 
 __all__ = ["JsonFileSearcher"]

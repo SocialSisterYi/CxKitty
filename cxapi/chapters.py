@@ -168,7 +168,6 @@ class ChapterContainer:
         Args:
             index: 任务点索引
         """
-        self.refresh_chapter(index)
         resp = self.session.get(
             API_CHAPTER_CARDS,
             params=inf_enc_sign(

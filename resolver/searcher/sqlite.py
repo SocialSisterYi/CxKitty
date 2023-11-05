@@ -35,4 +35,5 @@ class SqliteSearcher(SearcherBase):
         except Exception as err:
             return SearcherResp(-500, err.__str__(), self, question.value, None)
 
+
 __all__ = ["SqliteSearcher"]

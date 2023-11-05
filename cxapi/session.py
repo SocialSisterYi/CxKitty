@@ -2,7 +2,7 @@ import re
 import time
 from enum import Enum, auto
 from os import PathLike
-from typing import Callable
+from typing import Callable, Optional
 
 import cv2
 import numpy as np
@@ -29,6 +29,9 @@ API_CAPTCHA_SUBMIT = "https://mooc1-api.chaoxing.com/html/processVerify.ac"
 
 # 接口-提交人脸识别结果
 API_FACE_SUBMIT_INFO = "https://mooc1-api.chaoxing.com/mooc-ans/knowledge/uploadInfo"
+
+# 接口-提交人脸识别结果
+API_FACE_SUBMIT_INFO_NEW = "https://mooc1-api.chaoxing.com/mooc-ans/facephoto/clientfacecheckstatus"
 
 # 接口-获取云盘 token
 API_GET_PAN_TOKEN = "https://pan-yz.chaoxing.com/api/token/uservalid"
@@ -81,7 +84,7 @@ def get_special_type(resp: Response) -> SpecialPageType:
         SpecialPageType: 特殊页面类型
     """
     resp_url = URL(resp.url)
-    if 'Location' in resp.headers:
+    if "Location" in resp.headers:
         return SpecialPageType.NORMAL
     if resp_url.path.endswith("/antispiderShowVerify.ac"):
         return SpecialPageType.CAPTCHA
@@ -105,7 +108,7 @@ class SessionWraper(Session):
     acc: AccountInfo  # 用户账号信息
     __cb_resolve_captcha_after: Callable[[int], None]  # 验证码识别前回调
     __cb_resolve_captcha_before: Callable[[bool, str], None]  # 验证码识别后回调
-    __cb_resolve_face_after: Callable[..., None]  # 人脸识别前回调
+    __cb_resolve_face_after: Callable[[str], None]  # 人脸识别前回调
     __cb_resolve_face_before: Callable[[str, PathLike], None]  # 人脸识别后回调
     __captcha_max_retry: int  # 验证码最大重试
     __request_max_retry: int  # 连接最大重试
@@ -157,9 +160,12 @@ class SessionWraper(Session):
         else:
             print(f"验证码识别成功：{code}，提交错误，10S 后重试")
 
-    def __cb_resolve_face_after(self):
-        """识别人脸前 默认回调"""
-        print("开始上传人脸")
+    def __cb_resolve_face_after(self, orig_url: str):
+        """识别人脸前 默认回调
+        Args:
+            orig_url: 原始重定向 url
+        """
+        print(f"开始上传人脸 URL:{orig_url}")
 
     def __cb_resolve_face_before(self, object_id: str, image_path: PathLike):
         """识别人脸后 默认回调"""
@@ -179,7 +185,7 @@ class SessionWraper(Session):
         """
         self.__cb_resolve_captcha_before = cb
 
-    def reg_face_after(self, cb: Callable[..., None]):
+    def reg_face_after(self, cb: Callable[[str], None]):
         """注册人脸识别前回调
         Args:
             cb: 回调函数
@@ -192,7 +198,7 @@ class SessionWraper(Session):
             cb: 回调函数
         """
         self.__cb_resolve_face_before = cb
-    
+
     def request(self, *args, **kwargs) -> Response:
         """ "requests.Session.request 的 hook 函数
         Args:
@@ -221,7 +227,9 @@ class SessionWraper(Session):
 
             case SpecialPageType.FACE:
                 # 人脸识别
+
                 self.__handle_face_detection(resp)
+
                 # 递归重发请求
                 resp = self.request(*args, **kwargs)
                 return resp
@@ -231,7 +239,7 @@ class SessionWraper(Session):
                 return resp
 
     def __handle_anti_spider(self) -> None:
-        """处理风控沿验证码"""
+        """处理风控验证码"""
         self.logger.info("开始处理验证码")
         for retry_times in range(self.__captcha_max_retry):
             self.logger.info(f"验证码处理第 {retry_times + 1} 次")
@@ -294,21 +302,28 @@ class SessionWraper(Session):
         Args:
             resp: 响应对象
         """
-        self.logger.info("开始处理人脸识别")
+        orig_url = URL(resp.url)
+        self.logger.info(f'开始处理人脸识别 响应url:"{orig_url}"')
         html = BeautifulSoup(resp.text, "lxml")
         js_code = html.select_one("body.grayBg script").text
         face_url = URL(re.search(r"\"/knowledge/startface\?(\S+)\"", js_code).group(0))
         class_id = face_url.query.get("clazzid")
-        course_id = face_url.query.get("courseid")
+        # 尝试从原始url中提取courseId，防止人脸识别重定向页面中不包含该courseId
+        course_id = (
+            face_url.query.get("courseid")
+            or orig_url.query.get("courseid")
+            or orig_url.query.get("courseId")
+        )
         knowledge_id = face_url.query.get("knowledgeid")
+        cpi = face_url.query.get("cpi")
 
-        self.__cb_resolve_face_after()
+        self.__cb_resolve_face_after(orig_url)
         time.sleep(5.0)
         if face_image_path := get_face_path_by_puid(self.acc.puid):
             self.logger.info(f'找到待上传人脸 "{face_image_path}"')
             token = self.__get_face_upload_token()
             object_id = self.__upload_face(token, self.acc.puid, face_image_path)
-            self.__submit_faceinfo(class_id, course_id, knowledge_id, object_id)
+            self.__submit_faceinfo(class_id, course_id, knowledge_id, cpi, object_id)
 
             self.__cb_resolve_face_before(object_id, face_image_path)
             time.sleep(5.0)
@@ -333,10 +348,23 @@ class SessionWraper(Session):
         """上传人脸照片
         Args:
             token: 云盘 token
+            puid: 用户 puid
             face_img: 待上传的人脸图片路径
         Returns:
             str: 上传后的对象 objectId
         """
+        # 随机 LSB 像素干扰，破坏 hash 风控
+        face_img = cv2.imread(str(face_img))
+        img_h, img_w, _ = face_img.shape
+        rng = np.random.default_rng()
+        for _ in range(rng.integers(0, 5)):
+            face_img[
+                rng.integers(0, img_h - 1),
+                rng.integers(0, img_w - 1),
+                rng.integers(0, 2),
+            ] += rng.integers(-2, 2)
+        _, face_img_data = cv2.imencode(".jpg", face_img)
+
         resp = self.post(
             API_UPLOAD_FACE,
             params={
@@ -345,7 +373,7 @@ class SessionWraper(Session):
                 "puid": puid,
             },
             files={
-                "file": (f"{get_ts()}.jpg", open(face_img, "rb"), "image/jpeg"),
+                "file": (f"{get_ts()}.jpg", face_img_data, "image/jpeg"),
             },
         )
         json_content = resp.json()
@@ -363,6 +391,7 @@ class SessionWraper(Session):
         class_id: str,
         course_id: str,
         knowledge_id: str,
+        cpi: str,
         object_id: str,
     ) -> None:
         """提交人脸识别信息
@@ -370,18 +399,30 @@ class SessionWraper(Session):
             class_id course_id knowledge_id: 课程信息 id
             object_id: 人脸上传 id
         """
-        resp = self.post(
-            API_FACE_SUBMIT_INFO,
-            data={
-                "clazzId": class_id,
+        # resp = self.post(
+        #     API_FACE_SUBMIT_INFO,
+        #     data={
+        #         "clazzId": class_id,
+        #         "courseId": course_id,
+        #         "knowledgeId": knowledge_id,
+        #         "uuid": "",
+        #         "qrcEnc": "",
+        #         "objectId": object_id,
+        #     },
+        # )
+        resp = self.get(
+            API_FACE_SUBMIT_INFO_NEW,
+            params={
                 "courseId": course_id,
-                "knowledgeId": knowledge_id,
-                "uuid": "",
-                "qrcEnc": "",
+                "clazzId": class_id,
+                "cpi": cpi,
+                "chapterId": knowledge_id,
                 "objectId": object_id,
+                "type": 1,
             },
         )
         json_content = resp.json()
+        self.logger.debug(f"人脸识别提交 resp:{json_content}")
         if json_content.get("status") is not True:
             message = json_content.get("msg")
             self.logger.error(f"人脸识别提交失败 {message}")
