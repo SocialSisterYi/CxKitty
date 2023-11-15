@@ -235,8 +235,11 @@ class PointWorkDto(TaskPointBase, QAQDtoBase):
             raise NotImplementedError("暂不支持解析已批阅作业")
 
         # 解析公共参数
-        self.title = html.body.select_one("h3.py-Title,h3.chapter-title").text.strip()
         submit_form = html.body.select_one("form#form1")
+        if submit_form is None:
+            raise NotImplementedError("作业未创建完成")
+        
+        self.title = html.body.select_one("h3.py-Title,h3.chapter-title").text.strip()
         self.work_answer_id = int(submit_form.select_one("input#workAnswerId")["value"])
         self.total_question_num = submit_form.select_one("input#totalQuestionNum")["value"]
         self.work_relation_id = int(submit_form.select_one("input#workRelationId")["value"])
