@@ -3,18 +3,17 @@ from typing import Literal, Optional
 import jsonpath
 import requests
 from bs4 import BeautifulSoup
+from rich import json
 
 from cxapi.schema import QuestionModel
-
 from . import SearcherBase, SearcherResp
 
 
 class RestApiSearcher(SearcherBase):
     """UrlQuery REST API 在线搜索器"""
-
     session: requests.Session
     q_field: str
-    o_field: Optional[list[str]]
+    o_field: list[str] | None
     a_query: jsonpath.JSONPath
     url: str
     method: Literal["GET", "POST"]
@@ -73,7 +72,7 @@ class JsonApiSearcher(SearcherBase):
 
     session: requests.Session
     q_field: str
-    o_field: Optional[list[str]]
+    o_field: Optional[str]
     a_query: jsonpath.JSONPath
     url: str
 
@@ -86,6 +85,7 @@ class JsonApiSearcher(SearcherBase):
         headers: Optional[dict] = None,  # 自定义头部
         ext_params: Optional[dict] = None,  # 扩展请求字段
     ) -> None:
+        self.question: str | None = None
         self.session = requests.Session()
         self.url = url
         if headers:
@@ -189,8 +189,10 @@ class TiKuHaiSearcher(JsonApiSearcher):
         super().__init__(
             url="http://api.tikuhai.com/search",
             headers={
+                "Host": "api.tikuhai.com",  # 缺少无法搜索
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
                 "referer": "https://mooc1.chaoxing.com",
+                "Content-Type": "application/json"  # 缺少无法搜索
             },
             a_field="$.data.answer",
             ext_params={
@@ -224,7 +226,9 @@ class MukeSearcher(JsonApiSearcher):
         super().__init__(
             url="https://api.muketool.com/cx/v2/query",
             headers={
+                "Host": "api.muketool.com",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
+                "Content-Type": "application/json"
             },
             a_field="$.data",
         )
@@ -240,19 +244,42 @@ class MukeSearcher(JsonApiSearcher):
 class LyCk6Searcher(JsonApiSearcher):
     """冷月题库搜索器"""
 
-    def __init__(self) -> None:
-        super().__init__(
-            url="https://lyck6.cn/scriptService/api/autoFreeAnswer",
-            a_field="$.result.answers[0][0]",
-        )
+    def __init__(self, token: str, gpt: int) -> None:
+        if token is None or len(token) != 10:
+            super().__init__(
+                url="https://lyck6.cn/scriptService/api/autoFreeAnswer",
+                headers={
+                    "Content-Type": "application/json",
+                },
+                a_field="$.result.answers[0][0]",
+            )
+        else:
+            super().__init__(
+                url="https://lyck6.cn//scriptService/api/autoAnswer/" + token + "?gpt=" + str(gpt),
+                headers={
+                    "Content-Type": "application/json",
+                },
+                a_field="$.result.answers[0][0]",
+            )
+
+    @staticmethod
+    def code_to_err(num):
+        numbers = {
+            403: "请不要挂梯子或使用任何网络代理工具",
+            444: "您请求速率过大,IP已经被封禁,请等待片刻或者更换IP",
+            415: "请不要使用手机运行此脚本，否则可能出现异常",
+            429: "免费题库搜题整体使用人数突增,系统繁忙,请耐心等待或使用付费题库...",
+            500: "服务器发生预料之外的错误",
+            502: "运维哥哥正在火速部署服务器,请稍等片刻,1分钟内恢复正常",
+            503: "搜题服务不可见,请稍等片刻,1分钟内恢复正常",
+            504: "系统超时"
+        }
+        return numbers.get(num, None)
 
     def parse(self, json_content: dict) -> SearcherResp:
-        if jsonpath.compile("$.code").parse(json_content)[0] != 0:
-            return SearcherResp(-404, "搜索失败", self, self.question, None)
-        if jsonpath.compile("$.code").parse(json_content)[0] == 429:
-            return SearcherResp(-429, "访问频繁已限速", self, self.question, None)
-        if jsonpath.compile("$.code").parse(json_content)[0] == 444:
-            return SearcherResp(-444, "服务繁忙，请稍后重试", self, self.question, None)
+        code = jsonpath.compile("$.code").parse(json_content)[0]
+        if code != 0:
+            return SearcherResp(code, self.code_to_err(code), self, self.question, None)
         if result := self.rsp_query.parse(json_content):
             return SearcherResp(0, "ok", self, self.question, result[0])
         return SearcherResp(-500, "未匹配答案字段", self, self.question, None)

@@ -109,11 +109,12 @@ searchers:
   
   # 题库海搜索源， 暂时可不用token 如若搜索失败 https://afdian.net/a/jiaoyu666 购买token
   # - type: TiKuHaiSearcher
-  #   token: ***
-
-  # 冷月题库, 免费限制4秒一次请求
+  #   token: "***"
+  
+  # 冷月题库, 免费限制4秒一次请求 如需gpt答题请设置gpt参数为1 token长度为10位 token获取地址https://lyck6.cn/pay
   # - type: LyCk6Searcher
-  #   token: ***
-
+  #   token: "***"
+  #   gpt:-1
+  
   # Muke题库
   # - type: MukeSearcher
