@@ -237,7 +237,7 @@ class PointWorkDto(TaskPointBase, QAQDtoBase):
         # 解析公共参数
         submit_form = html.body.select_one("form#form1")
         if submit_form is None:
-            raise NotImplementedError("作业未创建完成")
+            raise PointWorkError("作业未创建完成")
         
         self.title = html.body.select_one("h3.py-Title,h3.chapter-title").text.strip()
         self.work_answer_id = int(submit_form.select_one("input#workAnswerId")["value"])
