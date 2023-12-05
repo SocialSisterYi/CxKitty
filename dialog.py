@@ -110,6 +110,7 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
 
 def relogin(tui_ctx: Console, session: SessionModule, api: ChaoXingAPI):
     "重新登录账号"
+    api.session.ck_clear()
     phone = session.phone
     passwd = session.passwd
     if passwd is not None:

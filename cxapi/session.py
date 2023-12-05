@@ -443,5 +443,9 @@ class SessionWraper(Session):
         """
         return requests.utils.dict_from_cookiejar(self.cookies)
 
+    def ck_clear(self) -> None:
+        """清除当前会话的 ck
+        """
+        self.cookies.clear()
 
 __all__ = ["SessionWraper"]
