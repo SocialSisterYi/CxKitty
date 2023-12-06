@@ -4,6 +4,7 @@ from enum import Enum, auto
 from os import PathLike
 from typing import Callable, Optional
 
+import config
 import cv2
 import numpy as np
 import requests
@@ -121,15 +122,21 @@ class SessionWraper(Session):
         request_max_retry: int = 5,
         retry_delay: float = 5.0,
         **kwargs,
+        
     ) -> None:
         """Constructor
         Args:
             captcha_max_retry: 验证码最大重试次数
             request_max_retry: 连接重试计数
             retry_delay: 连接重试间隔
+            proxy: 代理地址 (e.g., "http://proxy.example.com:8080")
         """
         self.logger = Logger("Session")
         super().__init__(**kwargs)
+        # 设置代理
+        if config.HTTP_EN:
+            self.proxies = {"http": config.HTTP, "https": config.HTTPS}
+
         # 默认使用 APP 的 UA, 因为一些接口为 APP 独占
         self.headers.update(
             {
@@ -202,12 +209,13 @@ class SessionWraper(Session):
     def request(self, *args, **kwargs) -> Response:
         """ "requests.Session.request 的 hook 函数
         Args:
-            *args, **kwargs: request 的原始参数
+            *args, **kwargs: request 的原始参数,self.proxies:代理ip地址
         Returns:
             Response: 响应数据
         """
+
         try:
-            resp = super().request(*args, **kwargs)
+            resp = super().request(*args, **kwargs,proxies=self.proxies)
         except requests.ConnectionError as e:
             self.__request_retry_cnt += 1
             self.logger.warning(f"连接错误 {e.__str__()}")
@@ -217,12 +225,14 @@ class SessionWraper(Session):
             else:
                 raise
         self.__request_retry_cnt = 0
+        # 打印请求信息，包括 URL 和代理
+        url = URL(resp.url)
         match get_special_type(resp):
             case SpecialPageType.CAPTCHA:
                 # 验证码
                 self.__handle_anti_spider()
                 # 递归重发请求
-                resp = self.request(*args, **kwargs)
+                resp = self.request(*args, **kwargs,proxies=self.proxies)
                 return resp
 
             case SpecialPageType.FACE:
@@ -231,11 +241,12 @@ class SessionWraper(Session):
                 self.__handle_face_detection(resp)
 
                 # 递归重发请求
-                resp = self.request(*args, **kwargs)
+                resp = self.request(*args, **kwargs,proxies=self.proxies)
                 return resp
 
             case SpecialPageType.NORMAL:
                 # 正常响应
+                
                 return resp
 
     def __handle_anti_spider(self) -> None:
@@ -416,6 +427,7 @@ class SessionWraper(Session):
                 "courseId": course_id,
                 "clazzId": class_id,
                 "cpi": cpi,
+                'mooc2': '1',
                 "chapterId": knowledge_id,
                 "objectId": object_id,
                 "type": 1,
@@ -443,9 +455,5 @@ class SessionWraper(Session):
         """
         return requests.utils.dict_from_cookiejar(self.cookies)
 
-    def ck_clear(self) -> None:
-        """清除当前会话的 ck
-        """
-        self.cookies.clear()
 
 __all__ = ["SessionWraper"]
