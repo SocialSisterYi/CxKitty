@@ -285,6 +285,34 @@ class LyCk6Searcher(JsonApiSearcher):
         return SearcherResp(-500, "未匹配答案字段", self, self.question, None)
 
 
+class LemonSearcher(JsonApiSearcher):
+    """柠檬题库搜索器"""
+
+    def __init__(self, token: str) -> None:
+        super().__init__(
+            url="https://api.lemtk.xyz/api/v1/mcx",
+            headers={
+                "Authorization": "Bearer "+token,
+                "Content-Type": "application/json",
+                "User-Agent": "CxKitty",
+            },
+            ext_params={
+                "v": "1.0",
+                "uid": "703382225",
+            },
+            q_field="question",
+            a_field="$.data.answer",
+        )
+
+    def parse(self, json_content: dict) -> SearcherResp:
+        code = jsonpath.compile("$.code").parse(json_content)[0]
+        if code != 1000:
+            msg = jsonpath.compile("$.msg").parse(json_content)[0]
+            return SearcherResp(-403, msg, self, self.question, None)
+        if result := self.rsp_query.parse(json_content):
+            return SearcherResp(0, "ok", self, self.question, result[0])
+        return SearcherResp(-500, "未匹配答案字段", self, self.question, None)
+
 __all__ = [
     "RestApiSearcher",
     "JsonApiSearcher",
@@ -293,4 +321,5 @@ __all__ = [
     "TiKuHaiSearcher",
     "MukeSearcher",
     "LyCk6Searcher",
+    "LemonSearcher",
 ]

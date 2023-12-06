@@ -35,6 +35,7 @@ from .searcher.restapi import (
     LyCk6Searcher,
     MukeSearcher,
     JsonApiSearcher,
+    LemonSearcher,
 )
 from .searcher.sqlite import SqliteSearcher
 
@@ -49,6 +50,7 @@ SEARCHERS = {
     "LyCk6Searcher": LyCk6Searcher,
     "MukeSearcher": MukeSearcher,
     "JsonApiSearcher": JsonApiSearcher,
+    "LemonSearcher": LemonSearcher,
 }
 
 
