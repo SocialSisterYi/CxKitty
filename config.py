@@ -26,16 +26,24 @@ TUI_MAX_HEIGHT: int = conf.get("tui_max_height", 25)
 MASKACC: bool = conf.get("mask_acc", True)
 FETCH_UPLOADED_FACE: bool = conf.get("fetch_uploaded_face", True)
 
+#HTTP配置
+HTPP: dict = conf.get("proxies", {})
+HTTP_EN: bool = HTPP.get("enable", True)
+HTTPS: list = HTPP.get("HTTPS", [])
+HTTP: list = HTPP.get("HTTP", [])
+
 # 任务配置
 WORK: dict = conf.get("work", {})
 VIDEO: dict = conf.get("video", {})
 DOCUMENT: dict = conf.get("document", {})
 EXAM: dict = conf.get("exam", {})
 
+
 # 任务使能配置
 WORK_EN: bool = WORK.get("enable", True)
 VIDEO_EN: bool = VIDEO.get("enable", True)
 DOCUMENT_EN: bool = DOCUMENT.get("enable", True)
+
 
 # 任务延时配置
 WORK_WAIT: int = WORK.get("wait", 15)
