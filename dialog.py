@@ -211,25 +211,28 @@ def select_exam(tui_ctx: Console, exams: list[ClassExamModule], api: ChaoXingAPI
         )
     while True:
         tui_ctx.print(tb)
-        command = Prompt.ask("请选择考试对应的序号（[yellow]序号前加e导出[/]）, 输入 [yellow]q[/] 退出", console=tui_ctx)
+        command = Prompt.ask("请选择考试对应的序号或输入考试名（[yellow]e[/]导出，[yellow]q[/]退出）: ", console=tui_ctx)
         tui_ctx.print("")
         if command == "q":
             sys.exit()
+        elif command.startswith("e"):
+            export = True
+            exam_name = command[1:]
         else:
-            if command[0] == "e":
-                export = True
-                exam_index = int(command[1:])
-            else:
-                export = False
-                exam_index = int(command)
-            exam = ExamDto(
-                session=api.session,
-                acc=api.acc,
-                exam_id=exams[exam_index].exam_id,
-                course_id=exams[exam_index].course_id,
-                class_id=exams[exam_index].class_id,
-                cpi=exams[exam_index].cpi,
-                enc_task=exams[exam_index].enc_task
-            )
-            return exam, export
-    
+            export = False
+            exam_name = command
+
+        for exam in exams:
+            if str(exam.exam_id) == exam_name or exam.name == exam_name:
+                selected_exam = ExamDto(
+                    session=api.session,
+                    acc=api.acc,
+                    exam_id=exam.exam_id,
+                    course_id=exam.course_id,
+                    class_id=exam.class_id,
+                    cpi=exam.cpi,
+                    enc_task=exam.enc_task
+                )
+                return selected_exam, export
+
+        tui_ctx.print("未找到匹配的考试，请重新输入。")
