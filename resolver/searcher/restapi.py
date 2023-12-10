@@ -11,6 +11,7 @@ from . import SearcherBase, SearcherResp
 
 class RestApiSearcher(SearcherBase):
     """UrlQuery REST API 在线搜索器"""
+
     session: requests.Session
     q_field: str
     o_field: list[str] | None
@@ -140,16 +141,20 @@ class EnncySearcher(RestApiSearcher):
         )
 
     def parse(self, json_content: dict) -> SearcherResp:
-        if "".join(jsonpath.compile("$.data.answer").parse(json_content)) == "很抱歉, 题目搜索不到。":
+        parse_result = self.rsp_query.parse(json_content)
+        if "".join(parse_result) in (
+            "很抱歉, 题目搜索不到。",
+            "非常抱歉，题目搜索不到。",
+        ):
             return SearcherResp(-404, "搜索失败", self, self.question_value, None)
-        if "".join(jsonpath.compile("$.data.answer").parse(json_content)) in (
+        if "".join(parse_result) in (
             "配置为空或者配置错误，请自行检查或者联系作者查看。",
             "题库配置的“凭证”被刷新，不要刷新你的凭证！只有当你的题库被别人盗用时才能进行刷新操作，否则会导致题库配置失效，请您前往 https://tk.enncy.cn/ "
             "登录后到个人中心复制题库配置，并重新在脚本设置中粘贴题库配置。",
         ):
             return SearcherResp(-403, "Token无效", self, self.question_value, None)
-        if result := self.rsp_query.parse(json_content):
-            return SearcherResp(0, "ok", self, self.question_value, result[0])
+        if parse_result:
+            return SearcherResp(0, "ok", self, self.question_value, parse_result[0])
         return SearcherResp(-500, "未匹配答案字段", self, self.question_value, None)
 
 
@@ -192,7 +197,7 @@ class TiKuHaiSearcher(JsonApiSearcher):
                 "Host": "api.tikuhai.com",  # 缺少无法搜索
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
                 "referer": "https://mooc1.chaoxing.com",
-                "Content-Type": "application/json"  # 缺少无法搜索
+                "Content-Type": "application/json",  # 缺少无法搜索
             },
             a_field="$.data.answer",
             ext_params={
@@ -228,7 +233,7 @@ class MukeSearcher(JsonApiSearcher):
             headers={
                 "Host": "api.muketool.com",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
             a_field="$.data",
         )
@@ -272,7 +277,7 @@ class LyCk6Searcher(JsonApiSearcher):
             500: "服务器发生预料之外的错误",
             502: "运维哥哥正在火速部署服务器,请稍等片刻,1分钟内恢复正常",
             503: "搜题服务不可见,请稍等片刻,1分钟内恢复正常",
-            504: "系统超时"
+            504: "系统超时",
         }
         return numbers.get(num, None)
 
@@ -292,7 +297,7 @@ class LemonSearcher(JsonApiSearcher):
         super().__init__(
             url="https://api.lemtk.xyz/api/v1/mcx",
             headers={
-                "Authorization": "Bearer "+token,
+                "Authorization": "Bearer " + token,
                 "Content-Type": "application/json",
                 "User-Agent": "CxKitty",
             },
@@ -312,6 +317,7 @@ class LemonSearcher(JsonApiSearcher):
         if result := self.rsp_query.parse(json_content):
             return SearcherResp(0, "ok", self, self.question, result[0])
         return SearcherResp(-500, "未匹配答案字段", self, self.question, None)
+
 
 __all__ = [
     "RestApiSearcher",
