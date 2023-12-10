@@ -165,7 +165,7 @@ def fuck_task_worker(chap: ChapterContainer):
                     task_point.fetch_attachment()
                 except ChapterNotOpened:
                     if refresh_flag:
-                        chap.refresh_chapter(index)
+                        chap.refresh_chapter(index-1)
                         refresh_flag = False
                         continue
                     else:
