@@ -2,7 +2,7 @@ import re
 import time
 from enum import Enum, auto
 from os import PathLike
-from typing import Callable, Optional
+from typing import Callable
 
 import cv2
 import numpy as np
@@ -15,29 +15,17 @@ from requests.sessions import Session
 from yarl import URL
 
 from logger import Logger
-from utils import get_face_path_by_puid
 
-from .exception import APIError, FaceDetectionError, HandleCaptchaError
+from .exception import HandleCaptchaError
 from .schema import AccountInfo
-from .utils import get_ts, get_ua
+from .utils import get_ua
+from .face_detection import FaceDetectionDto
 
 # 接口-获取验证码图片
 API_CAPTCHA_IMG = "https://mooc1-api.chaoxing.com/processVerifyPng.ac"
 
 # 接口-提交验证码并重定向至原请求
 API_CAPTCHA_SUBMIT = "https://mooc1-api.chaoxing.com/html/processVerify.ac"
-
-# 接口-提交人脸识别结果
-API_FACE_SUBMIT_INFO = "https://mooc1-api.chaoxing.com/mooc-ans/knowledge/uploadInfo"
-
-# 接口-提交人脸识别结果
-API_FACE_SUBMIT_INFO_NEW = "https://mooc1-api.chaoxing.com/mooc-ans/facephoto/clientfacecheckstatus"
-
-# 接口-获取云盘 token
-API_GET_PAN_TOKEN = "https://pan-yz.chaoxing.com/api/token/uservalid"
-
-# 接口-上传人脸图片
-API_UPLOAD_FACE = "https://pan-yz.chaoxing.com/upload"
 
 ocr = DdddOcr(show_ad=False)
 
@@ -106,6 +94,7 @@ class SessionWraper(Session):
 
     logger: Logger  # 日志记录器
     acc: AccountInfo  # 用户账号信息
+    face_detection: FaceDetectionDto  # 人脸识别 Dto
     __cb_resolve_captcha_after: Callable[[int], None]  # 验证码识别前回调
     __cb_resolve_captcha_before: Callable[[bool, str], None]  # 验证码识别后回调
     __cb_resolve_face_after: Callable[[str], None]  # 人脸识别前回调
@@ -141,6 +130,7 @@ class SessionWraper(Session):
         self.__request_max_retry = request_max_retry
         self.__request_retry_cnt = 0
         self.__retry_delay = retry_delay
+        self.face_detection = FaceDetectionDto(self)
 
     def __cb_resolve_captcha_after(self, times: int):
         """识别验证码前 默认回调
@@ -264,6 +254,37 @@ class SessionWraper(Session):
             # retry 超限
             raise HandleCaptchaError
 
+    def __handle_face_detection(self, resp: Response):
+        """处理风控人脸识别
+        Args:
+            resp: 响应对象
+        """
+        orig_url = URL(resp.url)
+        self.logger.info(f'开始处理人脸识别 响应url:"{orig_url}"')
+        html = BeautifulSoup(resp.text, "lxml")
+        js_code = html.select_one("body.grayBg script").text
+        face_url = URL(re.search(r"\"/knowledge/startface\?(\S+)\"", js_code).group(0))
+        class_id = face_url.query.get("clazzid")
+        # 尝试从原始url中提取courseId，防止人脸识别重定向页面中不包含该courseId
+        course_id = (
+            face_url.query.get("courseid")
+            or orig_url.query.get("courseid")
+            or orig_url.query.get("courseId")
+        )
+        knowledge_id = face_url.query.get("knowledgeid")
+        cpi = face_url.query.get("cpi")
+
+        self.__cb_resolve_face_after(orig_url)
+        time.sleep(5.0)
+
+        # 上传并提交人脸
+        self.face_detection.get_upload_token()
+        object_id, face_image_path = self.face_detection.upload_face_by_puid()
+        self.face_detection.submit_face_new(class_id, course_id, knowledge_id, cpi, object_id)
+
+        self.__cb_resolve_face_before(object_id, face_image_path)
+        time.sleep(5.0)
+
     def __get_captcha_image(self) -> bytes | None:
         """获取验证码图片
         Returns:
@@ -297,138 +318,6 @@ class SessionWraper(Session):
         self.logger.warning(f"验证码验证失败 {code}")
         return False
 
-    def __handle_face_detection(self, resp: Response):
-        """处理风控人脸识别
-        Args:
-            resp: 响应对象
-        """
-        orig_url = URL(resp.url)
-        self.logger.info(f'开始处理人脸识别 响应url:"{orig_url}"')
-        html = BeautifulSoup(resp.text, "lxml")
-        js_code = html.select_one("body.grayBg script").text
-        face_url = URL(re.search(r"\"/knowledge/startface\?(\S+)\"", js_code).group(0))
-        class_id = face_url.query.get("clazzid")
-        # 尝试从原始url中提取courseId，防止人脸识别重定向页面中不包含该courseId
-        course_id = (
-            face_url.query.get("courseid")
-            or orig_url.query.get("courseid")
-            or orig_url.query.get("courseId")
-        )
-        knowledge_id = face_url.query.get("knowledgeid")
-        cpi = face_url.query.get("cpi")
-
-        self.__cb_resolve_face_after(orig_url)
-        time.sleep(5.0)
-        if face_image_path := get_face_path_by_puid(self.acc.puid):
-            self.logger.info(f'找到待上传人脸 "{face_image_path}"')
-            token = self.__get_face_upload_token()
-            object_id = self.__upload_face(token, self.acc.puid, face_image_path)
-            self.__submit_faceinfo(class_id, course_id, knowledge_id, cpi, object_id)
-
-            self.__cb_resolve_face_before(object_id, face_image_path)
-            time.sleep(5.0)
-        else:
-            self.logger.error("未找到待上传人脸")
-            raise FaceDetectionError
-
-    def __get_face_upload_token(self) -> str:
-        """获取云盘 token (用于上传人脸)
-        Returns:
-            str: 云盘 token
-        """
-        resp = self.get(API_GET_PAN_TOKEN)
-        json_content = resp.json()
-        if json_content.get("result") is not True:
-            raise APIError
-        token = json_content["_token"]
-        self.logger.debug(f"云盘token获取成功 {token}")
-        return token
-
-    def __upload_face(self, token: str, puid: int, face_img: str | PathLike) -> str:
-        """上传人脸照片
-        Args:
-            token: 云盘 token
-            puid: 用户 puid
-            face_img: 待上传的人脸图片路径
-        Returns:
-            str: 上传后的对象 objectId
-        """
-        # 随机 LSB 像素干扰，破坏 hash 风控
-        face_img = cv2.imread(str(face_img))
-        img_h, img_w, _ = face_img.shape
-        rng = np.random.default_rng()
-        for _ in range(rng.integers(0, 5)):
-            face_img[
-                rng.integers(0, img_h - 1),
-                rng.integers(0, img_w - 1),
-                rng.integers(0, 2),
-            ] += rng.integers(-2, 2)
-        _, face_img_data = cv2.imencode(".jpg", face_img)
-
-        resp = self.post(
-            API_UPLOAD_FACE,
-            params={
-                "uploadtype": "face",
-                "_token": token,
-                "puid": puid,
-            },
-            files={
-                "file": (f"{get_ts()}.jpg", face_img_data, "image/jpeg"),
-            },
-        )
-        json_content = resp.json()
-        self.logger.debug(f"人脸上传 resp:{json_content}")
-        if json_content.get("result") is not True:
-            self.logger.error("人脸上传失败")
-            raise APIError
-        object_id = json_content["objectId"]
-        url = json_content["data"]["previewUrl"]
-        self.logger.info(f"人脸上传成功 I.{object_id}/U.{url}")
-        return object_id
-
-    def __submit_faceinfo(
-        self,
-        class_id: str,
-        course_id: str,
-        knowledge_id: str,
-        cpi: str,
-        object_id: str,
-    ) -> None:
-        """提交人脸识别信息
-        Args:
-            class_id course_id knowledge_id: 课程信息 id
-            object_id: 人脸上传 id
-        """
-        # resp = self.post(
-        #     API_FACE_SUBMIT_INFO,
-        #     data={
-        #         "clazzId": class_id,
-        #         "courseId": course_id,
-        #         "knowledgeId": knowledge_id,
-        #         "uuid": "",
-        #         "qrcEnc": "",
-        #         "objectId": object_id,
-        #     },
-        # )
-        resp = self.get(
-            API_FACE_SUBMIT_INFO_NEW,
-            params={
-                "courseId": course_id,
-                "clazzId": class_id,
-                "cpi": cpi,
-                "chapterId": knowledge_id,
-                "objectId": object_id,
-                "type": 1,
-            },
-        )
-        json_content = resp.json()
-        self.logger.debug(f"人脸识别提交 resp:{json_content}")
-        if json_content.get("status") is not True:
-            message = json_content.get("msg")
-            self.logger.error(f"人脸识别提交失败 {message}")
-            raise APIError
-        self.logger.info("人脸识别提交成功")
-
     def ck_load(self, ck: dict[str, str]) -> None:
         """加载 dict 格式的 ck
         Args:
@@ -444,8 +333,8 @@ class SessionWraper(Session):
         return requests.utils.dict_from_cookiejar(self.cookies)
 
     def ck_clear(self) -> None:
-        """清除当前会话的 ck
-        """
+        """清除当前会话的 ck"""
         self.cookies.clear()
+
 
 __all__ = ["SessionWraper"]

@@ -7,7 +7,8 @@ class HandleCaptchaError(Exception):
 
 
 class FaceDetectionError(Exception):
-    "人脸识别错误"
+    def __str__(self):
+        return "人脸识别错误"
 
 
 class ChapterNotOpened(APIError):

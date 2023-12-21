@@ -1,3 +1,4 @@
+import json
 import random
 import re
 from datetime import datetime
@@ -30,6 +31,7 @@ from .exception import (
     ExamSubmitError,
     ExamSubmitTooEarly,
     ExamTimeout,
+    FaceDetectionError,
     IPNotAllow,
     PCExamClintOnly,
 )
@@ -234,10 +236,13 @@ class ExamDto(QAQDtoBase):
     exam_answer_id: int
     monitor_enc: str
     need_code: bool  # 是否要求考试码
+    need_face: bool  # 是否要求人脸识别
     enc: str  # 动态行为校验
     remain_time: int
     enc_remain_time: int
     last_update_time: int
+    face_detection_result: dict  # 人脸识别结果
+    face_key: str  # 人脸识别成功验证 Token
 
     tui_ctx: Layout
 
@@ -263,12 +268,15 @@ class ExamDto(QAQDtoBase):
         self.exam_answer_id = 0
         self.monitor_enc = None
         self.need_code = False
+        self.need_face = False
         self.remain_time = 0
         self.enc = None
         self.enc_remain_time = 0
         self.last_update_time = 0
         self.title = None
         self.exam_student = None
+        self.face_detection_result = None
+        self.face_key = None
 
         self.tui_ctx = Layout(name="Exam")
 
@@ -384,7 +392,49 @@ class ExamDto(QAQDtoBase):
         self.title = html.select_one("span.overHidden2").text
         js_code = html.body.select_one("script").text
         self.need_code = bool(re.search(r"var *needcode *= *(\d+);", js_code).group(1))
+        self.need_face = bool(html.select_one("input#faceRecognitionCompare")["value"])
         self.logger.info(f"获取考试成功 [{self.title}(I.{self.exam_id})]")
+
+        # 解决人脸识别
+        if self.need_face is True:
+            self.logger.info(f"考试要求识别人脸 [{self.title}(I.{self.exam_id})]")
+            self.resolve_face_detection()
+
+    def resolve_face_detection(self):
+        """解决人脸识别"""
+        self.session.face_detection.get_upload_token()
+
+        # 不知道为什么会上传两次
+        object_id, _ = self.session.face_detection.upload_face_by_puid()
+        object_id2, _ = self.session.face_detection.upload_face_by_puid()
+
+        # 提交并比对人脸
+        submit_result = self.session.face_detection.submit_face_exam(
+            exam_id=self.exam_id,
+            course_id=self.course_id,
+            class_id=self.class_id,
+            cpi=self.cpi,
+            object_id=object_id,
+        )
+
+        # 生成人脸识别提交 Token 与 result 数据
+        self.face_key = submit_result["facekey"]
+        self.face_detection_result = {
+            "collectedFaceId": submit_result["detail"]["collectObjectId"],
+            "currentFaceId": submit_result["detail"]["faceObjectId"],
+            "collectStatus": 1,
+            "LiveDetectionStatus": 1,
+            "extraData": {
+                "a_eye": random.choices((-1, 0), (0.2, 0.8)),
+                "a_score": 0,
+                "f_extra": f"{random.randint(5000, 10000)}_0_-1_1_0",
+                "ret": random.randint(100, 105),
+                "s_objectId": object_id2,
+                "s_score": random.randint(80000000, 99000000) / 1e8,
+            },
+            "ignoreLiveDetectionStatus": 1,
+        }
+        self.logger.debug(f"人脸识别数据: key={self.face_key} detail={self.face_detection_result}")
 
     def start(self, code: str = None) -> QuestionModel:
         """开始考试
@@ -404,7 +454,13 @@ class ExamDto(QAQDtoBase):
                 "cpi": self.cpi,
                 "keyboardDisplayRequiresUserAction": 1,
                 "imei": get_imei(),
-                "faceDetectionResult": "",
+                "faceDetection": int(self.need_face),
+                "facekey": (self.face_key if self.need_face else ""),
+                "faceDetectionResult": (
+                    json.dumps(self.face_detection_result, separators=(",", ":"))
+                    if self.need_face
+                    else ""
+                ),
                 "jt": 0,
                 "code": code or "",
             },
@@ -415,10 +471,12 @@ class ExamDto(QAQDtoBase):
         if resp.status_code == 200:
             # 200 时可能为考试码错误
             html = BeautifulSoup(resp.text, "lxml")
-            if t := html.find("li", {"class": "msg"}):
+            if t := html.select_one("p.blankTips,li.msg"):
                 self.logger.error(f"开始考试错误 ({t.text}) [{self.title}(I.{self.exam_id})]")
                 if t.text == "验证码错误！":
-                    raise ExamCodeDenied
+                    raise ExamCodeDenied(t.text)
+                elif t.text == "人脸识别对比不通过，不允许进入考试":
+                    raise FaceDetectionError(t.text)
                 else:
                     raise ExamEnterError(t.text)
         elif resp.status_code == 302:

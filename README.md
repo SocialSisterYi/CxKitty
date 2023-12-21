@@ -26,7 +26,7 @@
   - ✅使用 [requests](https://github.com/psf/requests) 及 [bs4](https://www.crummy.com/software/BeautifulSoup/) 分别进行协议模拟和 HTML 解析，故无需浏览器，更无需油猴脚本
   - ✅无惧接口风控，基于 [OpenCV](https://github.com/opencv/opencv) 与 [ddddocr](https://github.com/sml2h3/ddddocr) 对验证码进行识别，进而解除接口风控状态
   - ✅接口请求 retry 支持，针对网络环境不佳以及使用移动流量的场景优化
-  - ✅人脸识别弹窗自动上传提交，可使用预先上传的人脸图片，也可自定义图片上传提交
+  - ✅人脸识别弹窗自动上传提交，支持课程进入、任务点进入、考试进入三种类型，可使用预先上传的人脸图片，也可自定义图片上传提交
 - 任务点
   - ✅视频课程任务点模拟播放（无需消耗流量播放流媒体内容）
   - ✅文档任务点模拟浏览（如 word ppt pdf 等）
