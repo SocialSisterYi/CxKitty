@@ -56,7 +56,7 @@ class OpenAISearcher(SearcherBase):
                             value="We didn’t have health____________ at the time and when I got a third infection, my parents couldn’t pay for the treatment.",
                             options="选项：\nA. assurance;B. insurance;C. requirement;D. issure;",
                         )
-                    },# 担心AI不听话，所以这里给个选择题回复示例
+                    },# 这里给个单选题回复示例供 AI 模仿
                     {"role": "assistant", "content": "A. insurance"},
                     {
                         "role": "user",
