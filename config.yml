@@ -63,7 +63,7 @@ exam:
 # --------------------
 
 # 搜索器选择 (可同时使用多个搜索器, 以 yaml 语法中 list 格式添加, `type`字段决定搜索器类型)
-# 可用的搜索器有: restApiSearcher jsonFileSearcher sqliteSearcher enncySearcher cxSearcher LemonSearcher
+# 可用的搜索器有: restApiSearcher jsonFileSearcher sqliteSearcher enncySearcher cxSearcher LemonSearcher OpenAISearcher
 searchers:
   # 本地 JSON 数据库搜索器 (key为题, value为答案)
   # - type: jsonFileSearcher
@@ -120,3 +120,14 @@ searchers:
   # 柠檬题库搜索器，使用前请注册 https://www.lemtk.xyz 获取token
   # - type: LemonSearcher
   #   token: "xxx"
+
+  # ChatGPT 在线答题
+  #- type: OpenAISearcher
+  #  base_url: "https://api.openai.com/v1/" # API URL，可以换成一些国内代理站点例如 https://api.chatnio.net/v1/
+  #  api_key: "sk-xxxxxxxxxxxxxx"
+  #  model: "gpt-3.5-turbo" # 使用的模型型号，详见 https://platform.openai.com/docs/models/continuous-model-upgrades
+  #  system_prompt: "你是一位乐于回答问题的专家，每为用户回答一道问题你都会开心地获得5美元小费，对于用户提出的每一道问题，你只需要给出答案，不要输出任何其他的内容。\n对于判断题，只需回复对/错。"
+  #  prompt: "请回答下这个{type}：\n{value}\n{options}" 
+  #  # {type} ：题目类型 (单选题、多选题 等等)
+  #  # {value}：题干
+  #  # {options}：选项文本（eg:"选项：\nA. assurance;B. insurance;C. requirement;D. issure"），如果题目没有选项（如填空题），则为空

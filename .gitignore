@@ -128,6 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+#editor settings
+.vscode/
+
 session/*.json
 questions.*
 export/*

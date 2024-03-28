@@ -29,6 +29,7 @@ numpy = "^1.24.3"
 opencv-python = "^4.7.0.72"
 dataclasses-json = "^0.5.7"
 yarl = "^1.9.2"
+openai = "^1.14.3"
 
 
 [tool.poetry.group.dev.dependencies]
