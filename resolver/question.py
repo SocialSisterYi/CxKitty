@@ -61,6 +61,9 @@ def load_searcher() -> MultiSearcherWraper:
         MultiSearcherWraper: 多搜索器封装
     """
     searcher = MultiSearcherWraper()
+    # 检查题库后端配置
+    if not config.SEARCHERS:
+        raise AttributeError("请先配置题库后端再运行，如不需要使用答题功能请修改config.yml进行关闭。")
     # 按需实例化并添加搜索器
     for searcher_conf in config.SEARCHERS:
         typename = searcher_conf["type"]
