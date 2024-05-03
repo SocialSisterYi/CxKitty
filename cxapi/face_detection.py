@@ -147,7 +147,7 @@ class FaceDetectionDto:
         knowledge_id: str,
         cpi: str,
         object_id: str,
-    ) -> None:
+    ) -> bool:
         """提交人脸识别信息
         Args:
             class_id course_id knowledge_id: 课程信息 id
@@ -170,9 +170,10 @@ class FaceDetectionDto:
         if json_content.get("status") is not True:
             message = json_content.get("msg")
             self.logger.error(f"人脸识别 new 提交失败 {message}")
-            raise APIError
+            return False
         self.logger.info("人脸识别 new 提交成功")
-
+        return True
+    
     def submit_face_exam(
         self,
         exam_id: int,

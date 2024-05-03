@@ -16,7 +16,7 @@ from yarl import URL
 
 from logger import Logger
 
-from .exception import HandleCaptchaError
+from .exception import HandleCaptchaError, FaceDetectionError
 from .schema import AccountInfo
 from .utils import get_ua
 from .face_detection import FaceDetectionDto
@@ -277,10 +277,17 @@ class SessionWraper(Session):
         self.__cb_resolve_face_after(orig_url)
         time.sleep(5.0)
 
-        # 上传并提交人脸
+        # 上传并提交人脸 重试 5 次
         self.face_detection.get_upload_token()
         object_id, face_image_path = self.face_detection.upload_face_by_puid()
-        self.face_detection.submit_face_new(class_id, course_id, knowledge_id, cpi, object_id)
+        face_detection_retries = 5
+
+        while self.face_detection.submit_face_new(class_id, course_id, knowledge_id, cpi, object_id) is not True:
+            object_id, face_image_path = self.face_detection.upload_face_by_puid()
+            face_detection_retries -= 1
+            if face_detection_retries == 0:
+                self.logger.error("人脸识别提交失败")
+                raise FaceDetectionError
 
         self.__cb_resolve_face_before(object_id, face_image_path)
         time.sleep(5.0)
