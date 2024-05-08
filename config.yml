@@ -91,7 +91,7 @@ searchers:
   #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
   #     # eg: Token: 'xxx'
   #   a_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
-  
+
   # 本地 sqlite 数据库搜索器
   # - type: sqliteSearcher
   #   file_path: "questions.db"  # 数据库文件路径
@@ -102,10 +102,11 @@ searchers:
   # Enncy 题库搜索器，使用前请注册 https://tk.enncy.cn/
   # - type: enncySearcher
   #   token: "xxx"  # Enncy 题库 Token
-  
+
   # 网课小工具(Go题)题库搜索器，使用前请获取Token https://cx.icodef.com/1-UserGuide/1-6-gettoken.html#%E8%8E%B7%E5%8F%96token
   # - type: cxSearcher
   #   token: "xxx"  # 网课小工具(Go题)题库 Token
+
   # 题库海搜索源， 暂时可不用token 如若搜索失败 https://afdian.net/a/jiaoyu666 购买token
   # - type: TiKuHaiSearcher
   #   token: ***
@@ -116,18 +117,18 @@ searchers:
 
   # Muke题库
   # - type: MukeSearcher
-  
+
   # 柠檬题库搜索器，使用前请注册 https://www.lemtk.xyz 获取token
   # - type: LemonSearcher
   #   token: "xxx"
 
-  # ChatGPT 在线答题
-  #- type: OpenAISearcher
-  #  base_url: "https://api.openai.com/v1/" # API URL，可以换成一些国内代理站点例如 https://api.chatnio.net/v1/
-  #  api_key: "sk-xxxxxxxxxxxxxx"
-  #  model: "gpt-3.5-turbo" # 使用的模型型号，详见 https://platform.openai.com/docs/models/continuous-model-upgrades
-  #  system_prompt: "你是一位乐于回答问题的专家，每为用户回答一道问题你都会开心地获得5美元小费，对于用户提出的每一道问题，你只需要给出答案，不要输出任何其他的内容。\n对于判断题，只需回复对/错。"
-  #  prompt: "请回答下这个{type}：\n{value}\n{options}" 
-  #  # {type} ：题目类型 (单选题、多选题 等等)
-  #  # {value}：题干
-  #  # {options}：选项文本（eg:"选项：\nA. assurance;B. insurance;C. requirement;D. issure"），如果题目没有选项（如填空题），则为空
+  # ChatGPT 在线答题，可以考虑使用超高性价比新兴国产开源大模型 DeepSeek https://platform.deepseek.com/docs
+  # - type: OpenAISearcher
+  #   base_url: "https://api.openai.com/v1/" # API URL，可以换成 DeepSeek 或一些 GPT 代理站点如 https://api.chatnio.net/v1/
+  #   api_key: "sk-xxx"
+  #   model: "gpt-3.5-turbo" # 使用的模型型号，详见 https://platform.openai.com/docs/models/continuous-model-upgrades，可以考虑 deepseek-chat
+  #   system_prompt: "你是一位乐于回答问题的专家，每为用户回答一道问题你都会开心地获得5美元小费，对于用户提出的每一道问题，你只需要给出答案，不要输出任何其他的内容。\n对于判断题，只需回复对/错。"
+  #   prompt: "请回答下这个{type}：\n{value}\n{options}" 
+  # {type} ：题目类型 (单选题、多选题 等等)
+  # {value}：题干
+  # {options}：选项文本（eg:"选项：\nA. assurance;B. insurance;C. requirement;D. issure"），如果题目没有选项（如填空题），则为空
