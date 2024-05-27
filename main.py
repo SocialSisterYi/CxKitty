@@ -2,6 +2,9 @@
 import json
 import sys
 import time
+import argparse
+
+
 from os import PathLike
 
 from rich.align import Align
@@ -328,26 +331,43 @@ def fuck_exam_worker(exam: ExamDto, export=False):
 
 
 if __name__ == "__main__":
-    dialog.logo(console)
-    acc_sessions = sessions_load()
-    # 存在至少一个会话存档
-    if acc_sessions:
-        # 多用户, 允许进行选择
-        if config.MULTI_SESS:
-            dialog.select_session(console, acc_sessions, api)
-        # 单用户, 默认加载第一个会话档
-        else:
-            ck = ck2dict(acc_sessions[0].ck)
-            api.session.ck_load(ck)
-            if not api.accinfo():
-                console.print("[red]会话失效, 尝试重新登录")
-                if not dialog.relogin(console, acc_sessions[0], api):
-                    console.print("[red]重登失败，账号或密码错误")
-                    sys.exit()
-    # 会话存档为空
+    parser = argparse.ArgumentParser(description='Samueli924/chaoxing')
+    parser.add_argument("-c", "--config", action="store_true", help="使用自动登录")
+    parser.add_argument("-u", "--username", type=str, default=None, help="手机号账号")
+    parser.add_argument("-p", "--password", type=str, default=None, help="登录密码")
+    parser.add_argument("-l", "--list", type=str, default=None, help="要学习的课程ID列表")
+    args = parser.parse_args()
+
+    console = Console()
+    use_manual_login = not args.config
+    username = args.username
+    password = args.password
+    course_ids = args.list.split(",") if args.list else []
+    
+    if not use_manual_login:
+        console.print("[green]自动登录")
+        dialog.login(console, api, use_manual_login, username, password)
     else:
-        console.print("[yellow]会话存档为空, 请登录账号")
-        dialog.login(console, api)
+        acc_sessions = sessions_load()
+        # 存在至少一个会话存档
+        if acc_sessions:
+            # 多用户, 允许进行选择
+            if config.MULTI_SESS:
+                dialog.select_session(console, acc_sessions, api, use_manual_login, username, password)
+            # 单用户, 默认加载第一个会话档
+            else:
+                ck = ck2dict(acc_sessions[0].ck)
+                api.session.ck_load(ck)
+                if not api.accinfo():
+                    console.print("[red]会话失效, 尝试重新登录")
+                    if not dialog.relogin(console, acc_sessions[0], api):
+                        console.print("[red]重登失败，账号或密码错误")
+                        sys.exit()
+        # 会话存档为空
+        else:
+            console.print("[yellow]会话存档为空, 请登录账号")
+            dialog.login(console, api, use_manual_login, username, password)
+
     logger.info("\n-----*任务开始执行*-----")
     logger.info(f"Ver. {__version__}")
     dialog.accinfo(console, api)
@@ -359,7 +379,7 @@ if __name__ == "__main__":
         # 拉取该账号下所学的课程
         classes = api.fetch_classes()
         # 课程选择交互
-        command = dialog.select_class(console, classes)
+        command = dialog.select_class(console, classes, course_ids)
         # 注册验证码 人脸 回调
         api.session.reg_captcha_after(on_captcha_after)
         api.session.reg_captcha_before(on_captcha_before)

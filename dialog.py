@@ -2,6 +2,8 @@ import re
 import sys
 import time
 
+
+
 from qrcode import QRCode
 from rich.console import Console
 from rich.prompt import Prompt
@@ -23,26 +25,6 @@ from utils import (
 )
 
 
-def logo(tui_ctx: Console) -> None:
-    "显示项目logo"
-    tui_ctx.print(
-        f"""\
-[red]   █████████             [/][green] █████   ████  ███   █████     █████[/]
-[red]  ███░░░░░███            [/][green]░░███   ███░  ░░░   ░░███     ░░███[/]
-[red] ███     ░░░  █████ █████[/][green] ░███  ███    ████  ███████   ███████   █████ ████[/]
-[red]░███         ░░███ ░░███ [/][green] ░███████    ░░███ ░░░███░   ░░░███░   ░░███ ░███[/]
-[red]░███          ░░░█████░  [/][green] ░███░░███    ░███   ░███      ░███     ░███ ░███[/]
-[red]░░███     ███  ███░░░███ [/][green] ░███ ░░███   ░███   ░███ ███  ░███ ███ ░███ ░███[/]
-[red] ░░█████████  █████ █████[/][green] █████ ░░████ █████  ░░█████   ░░█████  ░░███████[/]
-[red]  ░░░░░░░░░  ░░░░░ ░░░░░ [/][green]░░░░░   ░░░░ ░░░░░    ░░░░░     ░░░░░    ░░░░░███[/]
-[red]                         [/][green]                                         ███ ░███[/]
-[red]                         [/][green]                                        ░░██████[/]
-[red]                         [/][green]                                         ░░░░░░[/]
-[bold red]超星[/][red]学习通[/][green]答题姬 Ver{__version__}[/]
-[green]SocialSisterYi[/]
-─────────────────────────────────────""",
-        highlight=False,
-    )
 
 
 def accinfo(tui_ctx: Console, api: ChaoXingAPI) -> None:
@@ -58,55 +40,78 @@ def accinfo(tui_ctx: Console, api: ChaoXingAPI) -> None:
     )
 
 
-def login(tui_ctx: Console, api: ChaoXingAPI):
+def login(tui_ctx: Console, api: ChaoXingAPI, use_manual_login: bool, username: str = None, password: str = None):
     "交互-登录账号"
-    while True:
-        uname = Prompt.ask("[yellow]请输入手机号, 留空为二维码登录[/]", console=tui_ctx)
-        tui_ctx.print('')
-        # 二维码登录
-        if uname == "":
-            api.qr_get()
-            qr = QRCode()
-            qr.add_data(api.qr_geturl())
-            qr.print_ascii()  # 打印二维码到终端
-            tui_ctx.print("[yellow]等待扫描")
-            flag_scanned = False
-            # 开始轮询二维码状态
-            while True:
-                qr_status = api.login_qr()
-                if qr_status["status"] == True:
-                    tui_ctx.print("[green]登录成功")
-                    api.accinfo()
-                    accinfo(tui_ctx, api)
-                    save_session(api.session.ck_dump(), api.acc)
-                    return
-                match qr_status.get("type"):
-                    case "1":
-                        tui_ctx.print("[red]二维码验证错误")
-                        break
-                    case "2":
-                        tui_ctx.print("[red]二维码已失效")
-                        break
-                    case "4":
-                        if not flag_scanned:
-                            tui_ctx.print(
-                                f"[green]二维码已扫描 name={qr_status['nickname']} puid={qr_status['uid']}"
-                            )
-                        flag_scanned = True
-                time.sleep(1.0)
-        # 手机号+密码登录
-        else:
-            passwd = Prompt.ask("[yellow]请输入密码 (内容隐藏)", password=True, console=tui_ctx)
+
+    def manual_login():
+        while True:
+            uname = Prompt.ask("[yellow]请输入手机号, 留空为二维码登录[/]", console=tui_ctx)
             tui_ctx.print('')
-            status, result = api.login_passwd(uname, passwd)
-            if status:
-                tui_ctx.print("[green]登录成功")
-                tui_ctx.print(result)
-                api.accinfo()
-                save_session(api.session.ck_dump(), api.acc, passwd)
-                return
+            if uname == "":
+                api.qr_get()
+                qr = QRCode()
+                qr.add_data(api.qr_geturl())
+                qr.print_ascii()  # 打印二维码到终端
+                tui_ctx.print("[yellow]等待扫描")
+                flag_scanned = False
+                while True:
+                    qr_status = api.login_qr()
+                    if qr_status["status"]:
+                        tui_ctx.print("[green]登录成功")
+                        api.accinfo()
+                        accinfo(tui_ctx, api)
+                        save_session(api.session.ck_dump(), api.acc)
+                        return True
+                    match qr_status.get("type"):
+                        case "1":
+                            tui_ctx.print("[red]二维码验证错误")
+                            return False
+                        case "2":
+                            tui_ctx.print("[red]二维码已失效")
+                            return False
+                        case "4":
+                            if not flag_scanned:
+                                tui_ctx.print(f"[green]二维码已扫描 name={qr_status['nickname']} puid={qr_status['uid']}")
+                            flag_scanned = True
+                    time.sleep(1.0)
             else:
-                tui_ctx.print("[red]登录失败")
+                passwd = Prompt.ask("[yellow]请输入密码 (内容隐藏)", password=True, console=tui_ctx)
+                tui_ctx.print('')
+                status, result = api.login_passwd(uname, passwd)
+                if status:
+                    tui_ctx.print("[green]登录成功")
+                    tui_ctx.print(result)
+                    api.accinfo()
+                    save_session(api.session.ck_dump(), api.acc, passwd)
+                    return True
+                else:
+                    tui_ctx.print("[red]登录失败")
+                    return False
+
+    def auto_login(uname, passwd):
+        if uname is None or passwd is None:
+            tui_ctx.print("[red]用户名或密码未提供，无法自动登录")
+            return False
+        status, result = api.login_passwd(uname, passwd)
+        if status:
+            tui_ctx.print("[green]登录成功")
+            tui_ctx.print(result)
+            api.accinfo()
+            save_session(api.session.ck_dump(), api.acc, passwd)
+            return True
+        else:
+            tui_ctx.print("[red]登录失败")
+            return False
+
+    if use_manual_login:
+        while True:
+            if manual_login():
+                return
+    else:
+        if auto_login(username, password):
+            return
+
+
 
 def relogin(tui_ctx: Console, session: SessionModule, api: ChaoXingAPI):
     "重新登录账号"
@@ -126,7 +131,7 @@ def relogin(tui_ctx: Console, session: SessionModule, api: ChaoXingAPI):
     else:
         tui_ctx.print("[red]找不到密码, 无法重登")
 
-def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXingAPI):
+def select_session(tui_ctx: Console, sessions: list, api: ChaoXingAPI, use_manual_login: bool, username: str = None, password: str = None):
     "交互-选择会话"
     tb = Table("序号", "手机号", "puid", "姓名", title="请选择欲读档的会话")
     for index, session in enumerate(sessions):
@@ -141,7 +146,7 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
         inp = Prompt.ask("输入会话序号选择 ([yellow]序号后加r重登[/]), 留空登录新账号, 退出输入 [yellow]q[/]", console=tui_ctx)
         tui_ctx.print('')
         if inp == "":
-            login(tui_ctx, api)
+            login(tui_ctx, api, use_manual_login, username, password)
             if api.accinfo():
                 return
         elif inp == "q":
@@ -163,7 +168,7 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
                         continue
                 return
 
-def select_class(tui_ctx: Console, classes: ClassContainer) -> str:
+def select_class(tui_ctx: Console, classes: ClassContainer, course_ids: list[str]) -> str:
     "交互-选择课程"
     tb = Table("序号", "课程名", "老师名", "课程id", "课程状态", title="所学的课程", border_style="blue")
     for index, cla in enumerate(classes.classes):
@@ -174,15 +179,23 @@ def select_class(tui_ctx: Console, classes: ClassContainer) -> str:
             str(cla.course_id),
             Styled(cla.state.name, style="red" if cla.state == ClassStatus.已结课 else "green")
         )
+    tui_ctx.print(tb)
+    
+    if course_ids:
+        # 给每个课程名称加上双引号
+        quoted_course_ids = [f'"{course}"' for course in course_ids]
+        # 使用逗号分隔符连接课程名称
+        course_names = ",".join(quoted_course_ids)
+        print(course_names)
+        return course_names
     while True:
-        tui_ctx.print(tb)
         command = Prompt.ask("请输入欲完成的课程 ([yellow]序号/名称/id[/]), 序号前加[yellow]\"EXAM|\"[/]进入考试模式, 输入 [yellow]q[/] 退出", console=tui_ctx)
         tui_ctx.print("")
         if command == "q":
             sys.exit()
         else:
             return command
-
+        
 def select_exam(tui_ctx: Console, exams: list[ClassExamModule], api: ChaoXingAPI) -> tuple[ExamDto, bool]:
     """交互-选择考试
     Args:
