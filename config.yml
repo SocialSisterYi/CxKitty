@@ -59,6 +59,16 @@ exam:
   persubmit_delay: 15
   # 是否需要交互式确认交卷 自动交卷: false 手动确认: true
   confirm_submit: true
+# --------------------
+
+#选择是否启用代理ip
+proxies: 
+  #使能
+  enable: false
+  #Http IP http://proxy.example.com:8080
+  #HTTP: 
+  #Https IP http://proxy.example.com:8080
+  #HTTPS: 
 
 # --------------------
 
