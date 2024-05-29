@@ -122,13 +122,13 @@ searchers:
   # - type: LemonSearcher
   #   token: "xxx"
 
-  # ChatGPT 在线答题，可以考虑使用超高性价比新兴国产开源大模型 DeepSeek https://platform.deepseek.com/docs
+  # ChatGPT 在线答题，可以考虑使用超高性价比新兴国产开源大模型 [DeepSeek](https://platform.deepseek.com/docs)
   # - type: OpenAISearcher
-  #   base_url: "https://api.openai.com/v1/" # API URL，可以换成 DeepSeek 或一些 GPT 代理站点如 https://api.chatnio.net/v1/
-  #   api_key: "sk-xxx"
-  #   model: "gpt-3.5-turbo" # 使用的模型型号，详见 https://platform.openai.com/docs/models/continuous-model-upgrades，可以考虑 deepseek-chat
+  #   base_url: "https://api.openai.com/v1/" # API URL
+  #   api_key: "sk-xxx" # API Key
+  #   model: "gpt-3.5-turbo" # 使用的模型型号
   #   system_prompt: "你是一位乐于回答问题的专家，每为用户回答一道问题你都会开心地获得5美元小费，对于用户提出的每一道问题，你只需要给出答案，不要输出任何其他的内容。\n对于判断题，只需回复对/错。"
   #   prompt: "请回答下这个{type}：\n{value}\n{options}" 
-  # {type} ：题目类型 (单选题、多选题 等等)
-  # {value}：题干
-  # {options}：选项文本（eg:"选项：\nA. assurance;B. insurance;C. requirement;D. issure"），如果题目没有选项（如填空题），则为空
+  # # {type} ：题目类型 (单选题、多选题 等等)
+  # # {value}：题干
+  # # {options}：选项文本（eg:"选项：\nA. assurance;B. insurance;C. requirement;D. issure"），如果题目没有选项（如填空题），则为空
