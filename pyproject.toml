@@ -6,6 +6,7 @@ license = "GPL-3.0"
 authors = ["SocialSisterYi <1440239038@qq.com>"]
 readme = "README.md"
 repository = "https://github.com/SocialSisterYi/CxKitty"
+package-mode = false
 
 
 [[tool.poetry.source]]

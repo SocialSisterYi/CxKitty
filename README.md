@@ -37,7 +37,7 @@
   - ✅自动过滤题干和选项中的空白 Unicode 字符，eg：u+2002、u+200b、u+3000
   - ✅遇到匹配失败的题，可使用 fuzzer 方式填充答案并提交（默认关闭）
   - ✅章节测验试题 / 课程考试可完整导出，信息全、无加密无乱码，可导出临时保存的答案，现支持 json 格式
-  - ✅自动答题功能需要至少一种的 **题库后端** 支持，现支持`REST API`、`JSON`、`SQLite`三种类型的 **题库后端**，同时已适配`Enncy`、`网课小工具（Go题）`、`题库海`、`冷月题库`、`Muke题库`、`柠檬题库`六种第三方题库，可并行搜索，择优匹配答案（建议使用自建题库）
+  - ✅自动答题功能需要至少一种的 **题库后端** 支持，现支持`REST API`、`JSON`、`SQLite`三种类型的 **题库后端**，同时已适配`Enncy`、`网课小工具（Go题）`、`题库海`、`冷月题库`、`Muke题库`、`柠檬题库`六种第三方题库，同时支持 `ChatGPT 在线答题`，可并行搜索，择优匹配答案（建议使用自建题库）
   - ✅`REST API`类型 **题库后端** （用户接口）支持使用 [JsonPath](https://goessner.net/articles/JsonPath/) 语法进行答案字段提取，允许用户注入 HTTP header 和 params 依赖字段
   - ✅日志中将记录未完成的题目，并自动导出未完成的题目到 json
 
@@ -243,6 +243,18 @@ Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第�
 柠檬题库，使用前请注册并获取 Token 填写在配置文件中（第三方题库）
 
 通过此 [链接](https://www.lemtk.xyz) 获取 Token
+
+### ChatGPT 在线答题
+
+ChatGPT 在线答题，使用前请注册并获取 API Key 填写在配置文件中（大语言模型）
+
+可以考虑换成一些 GPT 代理站点，或考虑使用**超高性价比新兴国产开源大模型** [DeepSeek](https://platform.deepseek.com/docs)。
+
+DeepSeek 使用与 OpenAI 兼容的 API 格式，只需修改 `base_url` 和 `model` 即可使用。
+
+特别注意，尽管 DeepSeek 性价比极高且中文能力相当强，但它的**知识储备不足**且**在部分领域受到较大限制**。
+
+可在此处查看：[DeepSeek 模型列表](https://platform.deepseek.com/api-docs/zh-cn/#%E6%A8%A1%E5%9E%8B)、[GPT 模型列表](https://platform.openai.com/docs/models)。
 
 ## 📖Usage & Demo
 
