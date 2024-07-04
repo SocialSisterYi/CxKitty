@@ -517,7 +517,7 @@ class ExamDto(QAQDtoBase):
         # 遍历父节点 (题型)
         for sheet_father_node in html.select("ul"):
             type_name = re.search(
-                r"[一二三四五六七八九]\. *(?P<type_name>\S+)",
+                r"[一二三四五六七八九]\.、 *(?P<type_name>\S+)",
                 sheet_father_node.select_one("h4.cardTit").text,
             ).group("type_name")
             # 遍历子节点 (题号+状态)
