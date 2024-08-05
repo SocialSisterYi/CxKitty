@@ -17,6 +17,7 @@ from yarl import URL
 from logger import Logger
 
 from .base import QAQDtoBase
+from .captcha.image import ImageCaptchaDto, ImageCaptchaType, fuck_slide_image_captcha
 from .exception import (
     APIError,
     ChaptersNotComplete,
@@ -237,6 +238,8 @@ class ExamDto(QAQDtoBase):
     monitor_enc: str
     need_code: bool  # 是否要求考试码
     need_face: bool  # 是否要求人脸识别
+    need_captcha: bool  # 是否要求人机验证码
+    captcha_id: str
     enc: str  # 动态行为校验
     remain_time: int
     enc_remain_time: int
@@ -269,6 +272,7 @@ class ExamDto(QAQDtoBase):
         self.monitor_enc = None
         self.need_code = False
         self.need_face = False
+        self.need_captcha = False
         self.remain_time = 0
         self.enc = None
         self.enc_remain_time = 0
@@ -277,6 +281,7 @@ class ExamDto(QAQDtoBase):
         self.exam_student = None
         self.face_detection_result = None
         self.face_key = None
+        self.captcha_id = ""
 
         self.tui_ctx = Layout(name="Exam")
 
@@ -393,12 +398,19 @@ class ExamDto(QAQDtoBase):
         js_code = html.body.select_one("script").text
         self.need_code = bool(re.search(r"var *needcode *= *(\d+);", js_code).group(1))
         self.need_face = bool(html.select_one("input#faceRecognitionCompare")["value"])
+        self.need_captcha = bool(html.select_one("input#captchaCheck")["value"])
+        self.captcha_id = html.select_one("input#captchaCaptchaId")["value"]
         self.logger.info(f"获取考试成功 [{self.title}(I.{self.exam_id})]")
 
         # 解决人脸识别
         if self.need_face is True:
             self.logger.info(f"考试要求识别人脸 [{self.title}(I.{self.exam_id})]")
             self.resolve_face_detection()
+
+        # 解决人机验证码
+        if self.need_captcha is True:
+            self.logger.info(f"考试要求人机验证码 [{self.title}(I.{self.exam_id})]")
+            self.resolve_captcha(resp.url)
 
     def resolve_face_detection(self):
         """解决人脸识别"""
@@ -435,6 +447,16 @@ class ExamDto(QAQDtoBase):
             "ignoreLiveDetectionStatus": 1,
         }
         self.logger.debug(f"人脸识别数据: key={self.face_key} detail={self.face_detection_result}")
+
+    def resolve_captcha(self, referer: str):
+        captcha = ImageCaptchaDto(
+            session=self.session,
+            captcha_id=self.captcha_id,
+            captcha_type=ImageCaptchaType.SLIDE,
+        )
+        captcha.get_server_time()
+        shade_image, cutout_image = captcha.get_image(referer)
+        fuck_slide_image_captcha(shade_image, cutout_image)
 
     def start(self, code: str = None) -> QuestionModel:
         """开始考试
@@ -571,7 +593,11 @@ class ExamDto(QAQDtoBase):
             self.logger.error(f"拉取题目 {index} 失败 ({t.text}) [{self.title}(I.{self.exam_id})]")
             if t.text == "考试已经提交":
                 raise ExamIsCommitted
-            elif t.text in ("无权限访问！", "当前用户账号发生异常，无法进行考试", "当前班级发生异常，无法进行考试"):
+            elif t.text in (
+                "无权限访问！",
+                "当前用户账号发生异常，无法进行考试",
+                "当前班级发生异常，无法进行考试",
+            ):
                 raise ExamAccessDenied(t.text)
             elif t.text == "无效参数！":
                 raise ExamInvalidParams(t.text)
@@ -625,7 +651,11 @@ class ExamDto(QAQDtoBase):
             self.logger.error(f"整卷预览拉取失败 ({t.text}) [{self.title}(I.{self.exam_id})]")
             if t.text == "考试已经提交":
                 raise ExamIsCommitted
-            elif t.text in ("无权限访问！", "当前用户账号发生异常，无法进行考试", "当前班级发生异常，无法进行考试"):
+            elif t.text in (
+                "无权限访问！",
+                "当前用户账号发生异常，无法进行考试",
+                "当前班级发生异常，无法进行考试",
+            ):
                 raise ExamAccessDenied(t.text)
             else:
                 raise ExamError(t.text)
@@ -640,7 +670,9 @@ class ExamDto(QAQDtoBase):
         # 解析题目列表
         question_nodes = html.body.select("div.questionWrap.singleQuesId.ans-cc-exam")
         questions = [parse_question(question_node) for question_node in question_nodes]
-        self.logger.info(f"整卷预览拉取成功 (共 {len(questions)} 题) [{self.title}(I.{self.exam_id})]")
+        self.logger.info(
+            f"整卷预览拉取成功 (共 {len(questions)} 题) [{self.title}(I.{self.exam_id})]"
+        )
         self.logger.debug(f"题目 list: {[question.to_dict() for question in questions]}")
         self.refresh_tui()
         return questions
@@ -748,7 +780,9 @@ class ExamDto(QAQDtoBase):
             self.refresh_tui()
 
         if final is True:
-            self.logger.info(f"交卷成功 ({json_content.get('msg')}) [{self.title}(I.{self.exam_id})]")
+            self.logger.info(
+                f"交卷成功 ({json_content.get('msg')}) [{self.title}(I.{self.exam_id})]"
+            )
         else:
             self.logger.info(
                 f"提交成功 {index} ({json_content.get('msg')}) [{self.title}(I.{self.exam_id})]"
