@@ -405,14 +405,14 @@ class ExamDto(QAQDtoBase):
         # 解决人脸识别
         if self.need_face is True:
             self.logger.info(f"考试要求识别人脸 [{self.title}(I.{self.exam_id})]")
-            self.resolve_face_detection()
+            self.__resolve_face_detection()
 
         # 解决人机验证码
         if self.need_captcha is True:
             self.logger.info(f"考试要求人机验证码 [{self.title}(I.{self.exam_id})]")
-            self.resolve_captcha(resp.url)
+            self.__resolve_captcha(resp.url)
 
-    def resolve_face_detection(self):
+    def __resolve_face_detection(self):
         """解决人脸识别"""
         self.session.face_detection.get_upload_token()
 
@@ -448,7 +448,8 @@ class ExamDto(QAQDtoBase):
         }
         self.logger.debug(f"人脸识别数据: key={self.face_key} detail={self.face_detection_result}")
 
-    def resolve_captcha(self, referer: str):
+    def __resolve_captcha(self, referer: str):
+        """解决人机验证码"""
         captcha = ImageCaptchaDto(
             session=self.session,
             captcha_id=self.captcha_id,
@@ -456,7 +457,8 @@ class ExamDto(QAQDtoBase):
         )
         captcha.get_server_time()
         shade_image, cutout_image = captcha.get_image(referer)
-        fuck_slide_image_captcha(shade_image, cutout_image)
+        x_pos = fuck_slide_image_captcha(shade_image, cutout_image)
+        ...
 
     def start(self, code: str = None) -> QuestionModel:
         """开始考试
