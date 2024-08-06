@@ -33,6 +33,7 @@ from .exception import (
     ExamSubmitTooEarly,
     ExamTimeout,
     FaceDetectionError,
+    HandleCaptchaError,
     IPNotAllow,
     PCExamClintOnly,
 )
@@ -239,7 +240,8 @@ class ExamDto(QAQDtoBase):
     need_code: bool  # 是否要求考试码
     need_face: bool  # 是否要求人脸识别
     need_captcha: bool  # 是否要求人机验证码
-    captcha_id: str
+    captcha_id: str # 人机验证码id
+    captcha_validate: str   # 人机验证码结果
     enc: str  # 动态行为校验
     remain_time: int
     enc_remain_time: int
@@ -282,6 +284,7 @@ class ExamDto(QAQDtoBase):
         self.face_detection_result = None
         self.face_key = None
         self.captcha_id = ""
+        self.captcha_validate = ""
 
         self.tui_ctx = Layout(name="Exam")
 
@@ -449,16 +452,29 @@ class ExamDto(QAQDtoBase):
         self.logger.debug(f"人脸识别数据: key={self.face_key} detail={self.face_detection_result}")
 
     def __resolve_captcha(self, referer: str):
-        """解决人机验证码"""
+        """解决人机验证码
+        Args:
+            referer(str): 验证码所在页面url
+        """
         captcha = ImageCaptchaDto(
             session=self.session,
+            referer=referer,
             captcha_id=self.captcha_id,
-            captcha_type=ImageCaptchaType.SLIDE,
+            type=ImageCaptchaType.SLIDE,
         )
-        captcha.get_server_time()
-        shade_image, cutout_image = captcha.get_image(referer)
-        x_pos = fuck_slide_image_captcha(shade_image, cutout_image)
-        ...
+        for cnt in range(3):
+            captcha.get_server_time()
+            shade_image, cutout_image = captcha.get_image()
+            x_pos = fuck_slide_image_captcha(shade_image, cutout_image)
+            try:
+                self.captcha_validate = captcha.check_image([{"x": x_pos}])
+                self.logger.debug(f"人机验证通过: validate={self.captcha_validate}")
+                return
+            except HandleCaptchaError:
+                self.logger.debug(f"人机验证失败: cnt={cnt}")
+                continue
+        else:
+            raise HandleCaptchaError("人机验证码处理失败")
 
     def start(self, code: str = None) -> QuestionModel:
         """开始考试
@@ -485,6 +501,7 @@ class ExamDto(QAQDtoBase):
                     if self.need_face
                     else ""
                 ),
+                "captchavalidate": self.captcha_validate,
                 "jt": 0,
                 "code": code or "",
             },
@@ -541,7 +558,7 @@ class ExamDto(QAQDtoBase):
         # 遍历父节点 (题型)
         for sheet_father_node in html.select("ul"):
             type_name = re.search(
-                r"[一二三四五六七八九]\.、 *(?P<type_name>\S+)",
+                r"[一二三四五六七八九].*、 *(?P<type_name>\S+)",
                 sheet_father_node.select_one("h4.cardTit").text,
             ).group("type_name")
             # 遍历子节点 (题号+状态)
