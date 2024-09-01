@@ -1,4 +1,5 @@
 import json
+import re
 from openai import OpenAI
 import config
 from cxapi.schema import QuestionModel
@@ -91,6 +92,15 @@ class OpenAISearcher(SearcherBase):
                 if v in response:
                     awa += v+"#"
             response = awa
+
+        # 填空题预处理
+        if question.type.value == 2:
+            # 处理填空题多余字符以进行适配
+            if '第' in response:
+                response = re.sub(r'第\d+空: ', '', response).replace(';', '#')
+            elif re.search(r'[A-Z]\.', response):
+                response = re.sub(r'[A-Z]\. ', '', response).replace('#', '')
+            response = response.rstrip('#')  # 去掉末尾多余的#
         
         self.logger.info("返回结果：" + response)
         return SearcherResp(0, "", self, question.value, response)
