@@ -97,10 +97,11 @@ class OpenAISearcher(SearcherBase):
         if question.type.value == 2:
             # 处理填空题多余字符以进行适配
             if '第' in response:
-                response = re.sub(r'第\d+空: ', '', response).replace(';', '#')
+                response = re.sub(r'第\d+空[:：]\s*', '', response).replace(';', '#')
             elif re.search(r'[A-Z]\.', response):
-                response = re.sub(r'[A-Z]\. ', '', response).replace('#', '')
+                response = re.sub(r'[A-Za-z]\.*\s*', '', response).replace('#', '')
             response = response.rstrip('#')  # 去掉末尾多余的#
+            response = re.sub(r'[。.]$', '', response)  # 去除末尾的 '。' 或 '.'
         
         self.logger.info("返回结果：" + response)
         return SearcherResp(0, "", self, question.value, response)
