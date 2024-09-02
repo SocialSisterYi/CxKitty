@@ -241,8 +241,8 @@ class MukeSearcher(JsonApiSearcher):
     def parse(self, json_content: dict | list) -> SearcherResp:
         if jsonpath.compile("$.code").parse(json_content)[0] != 1:
             return SearcherResp(-404, "搜索失败", self, self.question, None)
-        if result := self.rsp_query.parse(json_content):
-            return SearcherResp(0, "ok", self, self.question, result[0][0])
+        if result := jsonpath.compile("$.data").parse(json_content):
+            return SearcherResp(0, "ok", self, self.question, result[0])
         return SearcherResp(-500, "未匹配答案字段", self, self.question, None)
 
 
