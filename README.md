@@ -244,9 +244,18 @@ Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第�
 
 通过此 [链接](https://www.lemtk.xyz) 获取 Token
 
-### ChatGPT 在线答题
+### ChatGPT 答题配置
 
-ChatGPT 在线答题，使用前请注册并获取 API Key 填写在配置文件中（大语言模型）
+OpenAISearcher 模块使用 [openai的python库](https://pypi.org/project/openai) 调用GPT等AI，来为你的作业提供自动答题服务。
+
+不同的AI服务提供商都为用户提供与 OpenAI 兼容的 API 格式，作为用户，
+
+|提供商|备注|
+|----|----|
+|[OpenAI](https://openai.com)||
+|[DeepSeek](https://deepseek.com)|国产|
+如果你有更好的方案，欢迎
+ChatGPT 在线答题，使用前请获取 API Key 填写在配置文件中（大语言模型）。
 
 可以考虑换成一些 GPT 代理站点，或考虑使用**超高性价比新兴国产开源大模型** [DeepSeek](https://platform.deepseek.com/docs)。
 

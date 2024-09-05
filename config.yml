@@ -122,9 +122,9 @@ searchers:
   # - type: LemonSearcher
   #   token: "xxx"
 
-  # ChatGPT 在线答题，可以考虑使用超高性价比新兴国产开源大模型 [DeepSeek](https://platform.deepseek.com/docs)
+  # ChatGPT 在线答题
   # - type: OpenAISearcher
-  #   base_url: "https://api.openai.com/v1/" # API URL
+  #   base_url: "https://api.openai.com/v1/" #API base URL , 当你不使用官方（openai.com）的 AI 服务时需要设定这个项为你的ai服务商。
   #   api_key: "sk-xxx" # API Key
   #   model: "gpt-3.5-turbo" # 使用的模型型号
   #   system_prompt: "你是一位乐于回答问题的专家，每为用户回答一道问题你都会开心地获得5美元小费，对于用户提出的每一道问题，你只需要给出答案，不要输出任何其他的内容。\n对于判断题，只需回复对/错。"
