@@ -254,7 +254,6 @@ OpenAISearcher 模块使用 [OpenAI的python库](https://pypi.org/project/openai
 |----|----|
 |[OpenAI](https://platform.openai.com/docs/models)||
 |[DeepSeek](https://deepseek.com)|国产、模型开源、性价比高|
-|[Chat Nio](https://chatnio.com/guide/pricing.html)|模型代理站、性价比高|
 
 有更好的服务商却没出现在这里？欢迎你 [更新该列表](https://github.com/SocialSisterYi/CxKitty/edit/main/README.md) ！
 
