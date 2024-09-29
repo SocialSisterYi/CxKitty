@@ -2,26 +2,28 @@ import random
 import secrets
 import time
 import urllib.parse
-from hashlib import md5
+import hashlib
 from math import floor
 from typing import Literal
 
-# 生成随机 IMEI 以及设备参数
-IMEI = secrets.token_hex(16)
-ANDROID_VERSION = f"Android {random.randint(9, 12)}"
-DEVICE_VENDOR = f"MI{random.randint(10, 12)}"
-APP_VERSION = "com.chaoxing.mobile/ChaoXingStudy_3_5.1.4_android_phone_614_74"
+# API 环境参数
+IMEI = secrets.token_hex(16)  # 设备uuid 生成随机即可
+ANDROID_VERSION = f"Android {random.randint(9, 12)}"  # 安卓版本
+MODEL = f"MI{random.randint(10, 12)}"  # 设备型号
+LOCALE = "zh_CN"  # 语言标识
+VERSION = "6.3.9"  # 版本名
+BUILD = "10824_250"  # 构建id
 
 
 def inf_enc_sign(params: dict) -> dict:
-    """为请求表单添加 infenc 校验
+    """为请求表单添加 infenc 签名
     Args:
         params: 原始请求表单参数
     Returns:
         dict: 加入签名后的表单参数
     """
     query = urllib.parse.urlencode(params) + "&DESKey=Z(AfY@XS"
-    inf_enc = md5(query.encode()).hexdigest()
+    inf_enc = hashlib.md5(query.encode()).hexdigest()
     return {
         **params,
         "inf_enc": inf_enc,
@@ -44,6 +46,30 @@ def get_imei() -> str:
     return IMEI
 
 
+def mobile_ua_sign(model: str, locale: str, version: str, build: str, imei: str) -> str:
+    """客户端 UA 签名
+    Args:
+        model: 设备型号
+        locale: 语言标识
+        version: 版本名
+        build: 构建id
+        imei: 设备uuid
+    Returns:
+        str: schild字段签名值
+    """
+    return hashlib.md5(
+        " ".join(
+            (
+                f"(schild:ipL$TkeiEmfy1gTXb2XHrdLN0a@7c^vu)",
+                f"(device:{model})",
+                f"Language/{locale}",
+                f"com.chaoxing.mobile/ChaoXingStudy_3_{version}_android_phone_{build}",
+                f"(@Kalimdor)_{imei}",
+            )
+        ).encode()
+    ).hexdigest()
+
+
 def get_ua(ua_type: Literal["mobile", "web"]) -> str:
     """获取 UA
     Args:
@@ -55,10 +81,11 @@ def get_ua(ua_type: Literal["mobile", "web"]) -> str:
         case "mobile":
             return " ".join(
                 (
-                    f"Dalvik/2.1.0 (Linux; U; {ANDROID_VERSION}; {DEVICE_VENDOR} Build/SKQ1.210216.001)",
-                    f"(device:{DEVICE_VENDOR})",
-                    f"Language/zh_CN",
-                    f"{APP_VERSION}",
+                    f"Dalvik/2.1.0 (Linux; U; {ANDROID_VERSION}; {MODEL} Build/SKQ1.211006.001)",
+                    f"(schild:{mobile_ua_sign(MODEL, LOCALE,VERSION,BUILD,IMEI)})",
+                    f"(device:{MODEL})",
+                    f"Language/{LOCALE}",
+                    f"com.chaoxing.mobile/ChaoXingStudy_3_{VERSION}_android_phone_{BUILD}",
                     f"(@Kalimdor)_{IMEI}",
                 )
             )
