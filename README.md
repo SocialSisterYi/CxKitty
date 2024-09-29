@@ -244,17 +244,19 @@ Enncy 题库，使用前请注册并获取 Token 填写在配置文件中（第�
 
 通过此 [链接](https://www.lemtk.xyz) 获取 Token
 
-### ChatGPT 在线答题
+### ChatGPT 答题配置
 
-ChatGPT 在线答题，使用前请注册并获取 API Key 填写在配置文件中（大语言模型）
+OpenAISearcher 模块使用 [OpenAI的python库](https://pypi.org/project/openai) 调用GPT等AI，来为你的作业提供自动答题服务。
 
-可以考虑换成一些 GPT 代理站点，或考虑使用**超高性价比新兴国产开源大模型** [DeepSeek](https://platform.deepseek.com/docs)。
+很多AI服务提供商会为用户提供与 OpenAI 兼容的 API 格式，这意味着你无需修改本模块源代码，只需修改模块配置文件中的 `base_url`，即可选择不同的服务提供商。下面是一份供你参考的AI服务商列表（有提供与 OpenAI 兼容的 API 格式的）。
 
-DeepSeek 使用与 OpenAI 兼容的 API 格式，只需修改 `base_url` 和 `model` 即可使用。
+|提供商|备注|
+|----|----|
+|[OpenAI](https://platform.openai.com/docs/models)||
+|[DeepSeek](https://deepseek.com)|国产、模型开源、性价比高|
 
-特别注意，尽管 DeepSeek 性价比极高且中文能力相当强，但它的**知识储备不足**且**在部分领域受到较大限制**。
+有更好的服务商却没出现在这里？欢迎你 [更新该列表](https://github.com/SocialSisterYi/CxKitty/edit/main/README.md) ！
 
-可在此处查看：[DeepSeek 模型列表](https://platform.deepseek.com/api-docs/zh-cn/#%E6%A8%A1%E5%9E%8B)、[GPT 模型列表](https://platform.openai.com/docs/models)。
 
 ## 📖Usage & Demo
 
