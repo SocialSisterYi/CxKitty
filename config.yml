@@ -74,7 +74,7 @@ searchers:
   #   url: "http://10.50.9.10:8088/question/search"  # API URL 请进行替换
   #   method: "POST"  # 请求方式
   #   q_field: "question"  # 题目文本参数
-  #   o_field: null  # 选项文本参数 (可选)  用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 
+  #   o_field: null  # 选项文本参数 (可选)  用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C)
   #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
   #     # eg: Authorization: 'xxx'
   #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
@@ -127,8 +127,8 @@ searchers:
   #   base_url: "https://api.openai.com/v1/" # API URL
   #   api_key: "sk-xxx" # API Key
   #   model: "gpt-3.5-turbo" # 使用的模型型号
-  #   system_prompt: "你是一位乐于回答问题的专家，每为用户回答一道问题你都会开心地获得5美元小费，对于用户提出的每一道问题，你只需要给出答案，不要输出任何其他的内容。\n对于判断题，只需回复对/错。"
-  #   prompt: "请回答下这个{type}：\n{value}\n{options}" 
+  #   system_prompt: "你是一位乐于回答问题的专家，每为用户回答一道问题你都会开心地获得5美元小费，对于用户提出的每一道问题，你只需要给出答案，不要输出任何其他的内容。\n对于填空题，只需回复一个或多个正确的答案且不能包含题干中的字，若有多个答案，用井号(#)将不同的答案分隔开。"
+  #   prompt: "请回答下这个{type}：\n{value}\n{options}"
   # # {type} ：题目类型 (单选题、多选题 等等)
   # # {value}：题干
   # # {options}：选项文本（eg:"选项：\nA. assurance;B. insurance;C. requirement;D. issure"），如果题目没有选项（如填空题），则为空
